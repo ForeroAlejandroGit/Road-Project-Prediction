@@ -1,256 +1,48 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Predicción de Costos - Proyectos Viales</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <script src="https://unpkg.com/vue@3.3.4/dist/vue.global.js"></script>
-</head>
-<body>
-    <div id="app">
-        {% raw %}
-        <header>
-            <div class="container">
-                <h1>🛣️ Sistema de Predicción de Costos en Proyectos Viales</h1>
-                <nav>
-                    <button @click="currentView = 'inicio'" :class="{active: currentView === 'inicio'}">Inicio</button>
-                    <button @click="currentView = 'nuevo'" :class="{active: currentView === 'nuevo'}">Nuevo Proyecto</button>
-                    <button @click="currentView = 'detalle'" :class="{active: currentView === 'detalle'}" v-if="selectedProyecto">Detalle Proyecto</button>
-                    <button @click="currentView = 'historicos'" :class="{active: currentView === 'historicos'}">Históricos</button>
-                    <button @click="currentView = 'modelo'" :class="{active: currentView === 'modelo'}">Modelo Predictivo</button>
-                </nav>
-            </div>
-        </header>
+{% extends "base.html" %}
 
-        <main class="container">
-            <div v-if="currentView === 'inicio'" class="view-inicio">
-                <div class="grid">
-                    <div class="map-section">
-                        <h2>Mapa de Proyectos</h2>
-                        <div id="map"></div>
-                    </div>
-                    
-                    <div class="table-section">
-                        <h2>Proyectos Activos</h2>
-                        <div class="table-container">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Proyecto</th>
-                                        <th>Código</th>
-                                        <th># UF's</th>
-                                        <th>Longitud (km)</th>
-                                        <th>Año</th>
-                                        <th>Duración</th>
-                                        <th>Fase</th>
-                                        <th>Ubicación</th>
-                                        <th>$ Causado</th>
-                                        <th>Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr v-for="proyecto in proyectos" 
-                                        :key="proyecto.id" 
-                                        @click="selectProyecto(proyecto)"
-                                        :class="{selected: selectedProyecto && selectedProyecto.id === proyecto.id}">
-                                        <td>{{ proyecto.nombre }}</td>
-                                        <td>{{ proyecto.codigo }}</td>
-                                        <td>{{ proyecto.num_ufs }}</td>
-                                        <td>{{ proyecto.longitud }}</td>
-                                        <td>{{ proyecto.anio_inicio }}</td>
-                                        <td>{{ proyecto.duracion }}</td>
-                                        <td>{{ proyecto.fase }}</td>
-                                        <td>{{ proyecto.ubicacion }}</td>
-                                        <td>${{ formatNumber(proyecto.costo) }}</td>
-                                        <td class="actions">
-                                            <button @click.stop="editProyecto(proyecto)" class="btn-edit">✏️</button>
-                                            <button @click.stop="deleteProyecto(proyecto.id)" class="btn-delete">🗑️</button>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
+{% block content %}
+<div id="app">
+    {% raw %}
+    <header>
+        <div class="container">
+            <h1>🛣️ Sistema de Predicción de Costos en Proyectos Viales</h1>
+            <nav>
+                <router-link to="/" custom v-slot="{ navigate, isActive }">
+                    <button @click="navigate" :class="{active: isActive}">Inicio</button>
+                </router-link>
+                <router-link to="/nuevo" custom v-slot="{ navigate, isActive }">
+                    <button @click="navigate" :class="{active: isActive}">Nuevo Proyecto</button>
+                </router-link>
+                <router-link to="/detalle" custom v-slot="{ navigate, isActive }" v-if="selectedProyecto">
+                    <button @click="navigate" :class="{active: isActive}">Detalle Proyecto</button>
+                </router-link>
+                <router-link to="/historicos" custom v-slot="{ navigate, isActive }">
+                    <button @click="navigate" :class="{active: isActive}">Históricos</button>
+                </router-link>
+                <router-link to="/modelo" custom v-slot="{ navigate, isActive }">
+                    <button @click="navigate" :class="{active: isActive}">Modelo Predictivo</button>
+                </router-link>
+            </nav>
+        </div>
+    </header>
 
-            <div v-if="currentView === 'nuevo'" class="view-form">
-                <h2>{{ editingProyecto ? 'Editar Proyecto' : 'Nuevo Proyecto' }}</h2>
-                <form @submit.prevent="saveProyecto">
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label>Nombre del Proyecto</label>
-                            <input v-model="form.nombre" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label>Código</label>
-                            <input v-model="form.codigo" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label>Número de UF's</label>
-                            <input v-model.number="form.num_ufs" type="number" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label>Longitud (km)</label>
-                            <input v-model.number="form.longitud" type="number" step="0.01" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label>Año de Inicio</label>
-                            <input v-model.number="form.anio_inicio" type="number" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label>Duración (meses)</label>
-                            <input v-model.number="form.duracion" type="number" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label>Fase</label>
-                            <select v-model="form.fase" required>
-                                <option>Detalle</option>
-                                <option>Ejecución</option>
-                                <option>Terminado</option>
-                            </select>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label>Ubicación</label>
-                            <input v-model="form.ubicacion" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label>Costo</label>
-                            <input v-model.number="form.costo" type="number" step="0.01" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label>Latitud Inicio</label>
-                            <input v-model.number="form.lat_inicio" type="number" step="0.0001" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label>Longitud Inicio</label>
-                            <input v-model.number="form.lng_inicio" type="number" step="0.0001" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label>Latitud Fin</label>
-                            <input v-model.number="form.lat_fin" type="number" step="0.0001" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label>Longitud Fin</label>
-                            <input v-model.number="form.lng_fin" type="number" step="0.0001" required>
-                        </div>
-                    </div>
-                    
-                    <div class="form-actions">
-                        <button type="submit" class="btn-primary">{{ editingProyecto ? 'Actualizar' : 'Crear' }} Proyecto</button>
-                        <button type="button" @click="cancelForm" class="btn-secondary">Cancelar</button>
-                    </div>
-                </form>
-            </div>
+    <main class="container">
+        <router-view></router-view>
+    </main>
+    {% endraw %}
+</div>
+{% endblock %}
 
-            <div v-if="currentView === 'detalle' && selectedProyecto" class="view-detalle">
-                <h2>Detalle del Proyecto</h2>
-                <div class="detalle-card">
-                    <h3>{{ selectedProyecto.nombre }}</h3>
-                    <div class="detalle-grid">
-                        <div class="detalle-item">
-                            <span class="label">Código:</span>
-                            <span class="value">{{ selectedProyecto.codigo }}</span>
-                        </div>
-                        <div class="detalle-item">
-                            <span class="label">UF's:</span>
-                            <span class="value">{{ selectedProyecto.num_ufs }}</span>
-                        </div>
-                        <div class="detalle-item">
-                            <span class="label">Longitud:</span>
-                            <span class="value">{{ selectedProyecto.longitud }} km</span>
-                        </div>
-                        <div class="detalle-item">
-                            <span class="label">Año Inicio:</span>
-                            <span class="value">{{ selectedProyecto.anio_inicio }}</span>
-                        </div>
-                        <div class="detalle-item">
-                            <span class="label">Duración:</span>
-                            <span class="value">{{ selectedProyecto.duracion }} meses</span>
-                        </div>
-                        <div class="detalle-item">
-                            <span class="label">Fase:</span>
-                            <span class="value">{{ selectedProyecto.fase }}</span>
-                        </div>
-                        <div class="detalle-item">
-                            <span class="label">Ubicación:</span>
-                            <span class="value">{{ selectedProyecto.ubicacion }}</span>
-                        </div>
-                        <div class="detalle-item">
-                            <span class="label">Costo:</span>
-                            <span class="value">${{ formatNumber(selectedProyecto.costo) }}</span>
-                        </div>
-                    </div>
-                    <div class="detalle-map">
-                        <div id="detalle-map" style="height: 400px; width: 100%;"></div>
-                    </div>
-                </div>
-            </div>
-
-            <div v-if="currentView === 'historicos'" class="view-historicos">
-                <h2>Análisis Histórico</h2>
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <h3>Total Proyectos</h3>
-                        <p class="stat-value">{{ proyectos.length }}</p>
-                    </div>
-                    <div class="stat-card">
-                        <h3>Inversión Total</h3>
-                        <p class="stat-value">${{ formatNumber(totalInversion) }}</p>
-                    </div>
-                    <div class="stat-card">
-                        <h3>Longitud Total</h3>
-                        <p class="stat-value">{{ totalLongitud.toFixed(2) }} km</p>
-                    </div>
-                    <div class="stat-card">
-                        <h3>Costo Promedio/km</h3>
-                        <p class="stat-value">${{ formatNumber(costoPromedioKm) }}</p>
-                    </div>
-                </div>
-            </div>
-
-            <div v-if="currentView === 'modelo'" class="view-modelo">
-                <h2>Modelo Predictivo de Costos</h2>
-                <div class="prediccion-card">
-                    <h3>Predicción de Costo</h3>
-                    <p class="info">Ingrese los parámetros del proyecto para obtener una estimación de costo</p>
-                    <form @submit.prevent="predecirCosto">
-                        <div class="form-group">
-                            <label>Longitud (km)</label>
-                            <input v-model.number="prediccion.longitud" type="number" step="0.01" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Número de UF's</label>
-                            <input v-model.number="prediccion.num_ufs" type="number" required>
-                        </div>
-                        <button type="submit" class="btn-primary">Predecir Costo</button>
-                    </form>
-                    <div v-if="costoPredicho" class="resultado-prediccion">
-                        <h4>Costo Estimado:</h4>
-                        <p class="costo-predicho">${{ formatNumber(costoPredicho) }}</p>
-                        <p class="nota">*Esta es una estimación basada en proyectos históricos</p>
-                    </div>
-                </div>
-            </div>
-        </main>
-        {% endraw %}
-    </div>
-
-    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
-    <script async defer src="https://maps.googleapis.com/maps/api/js?key={{ maps_api_key }}&callback=initMap"></script>
-</body>
-</html>
+{% block scripts %}
+<script>
+// Using backticks requires care with template literals; includes produce plain HTML
+const InicioTemplate = `{% include 'components/inicio.html' %}`;
+const NuevoTemplate = `{% include 'components/nuevo.html' %}`;
+const DetalleTemplate = `{% include 'components/detalle.html' %}`;
+const HistoricosTemplate = `{% include 'components/historicos.html' %}`;
+const ModeloTemplate = `{% include 'components/modelo.html' %}`;
+</script>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+<script async defer src="https://maps.googleapis.com/maps/api/js?key={{ maps_api_key }}&callback=initMap"></script>
+{% endblock %}
 

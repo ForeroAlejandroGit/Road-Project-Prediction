@@ -10,8 +10,9 @@ Aplicación web para gestión y predicción de costos en proyectos de infraestru
 - **API**: RESTful JSON API
 - **ML**: Scikit-learn para modelos predictivos (SVR)
 
-### Frontend (Vue 3)
+### Frontend (Vue 3 + Vue Router)
 - **Framework**: Vue 3 via CDN (sin build tools)
+- **Router**: Vue Router para navegación SPA
 - **Reactividad**: Sistema reactivo de Vue para UI dinámica
 - **Mapas**: Google Maps JavaScript API
 - **Estilo**: CSS puro con variables CSS modernas
@@ -19,19 +20,39 @@ Aplicación web para gestión y predicción de costos en proyectos de infraestru
 ### Estructura del Proyecto
 ```
 Road-Project-Prediction/
-├── app.py                 # Aplicación Flask principal
-├── models.py              # Modelos de base de datos
-├── config.py              # Configuración
-├── requirements.txt       # Dependencias Python
-├── database.db            # Base de datos SQLite (auto-generada)
+├── app.py                      # Aplicación Flask principal
+├── models.py                   # Modelos de base de datos (Proyecto, UnidadFuncional, Item)
+├── config.py                   # Configuración
+├── requirements.txt            # Dependencias Python
+├── database.db                 # Base de datos SQLite (auto-generada)
 ├── static/
 │   ├── css/
-│   │   └── style.css     # Estilos
+│   │   └── style.css          # Estilos
 │   └── js/
-│       └── app.js        # Aplicación Vue.js
+│       └── app.js             # Aplicación Vue.js con Router
 └── templates/
-    └── index.html        # Plantilla HTML principal
+    ├── base.html              # Plantilla base
+    ├── index.html             # Plantilla principal con router
+    └── components/            # Componentes de vista
+        ├── inicio.html        # Vista inicio (mapa + tabla)
+        ├── nuevo.html         # Vista formulario
+        ├── detalle.html       # Vista detalle con UFs e Items
+        ├── historicos.html    # Vista análisis histórico
+        └── modelo.html        # Vista predicción
 ```
+
+### Base de Datos
+
+#### Tabla `proyectos`
+Proyecto vial principal con información básica y coordenadas geográficas.
+
+#### Tabla `unidad_funcional` (1:N con proyectos)
+Unidades funcionales de cada proyecto con características técnicas:
+- Longitud, puentes vehiculares/peatonales, túneles
+- Alcance, zona, tipo de terreno
+
+#### Tabla `item` (1:N con proyectos)
+Items de costo detallados por proyecto (diseño, geología, pavimento, etc.)
 
 ## 🚀 Instalación
 
@@ -59,7 +80,7 @@ http://localhost:5000
 ### ✅ Gestión de Proyectos
 - Crear, leer, actualizar y eliminar proyectos viales
 - Visualización en tabla interactiva
-- Detalles completos de cada proyecto
+- Detalles completos de cada proyecto con datos relacionados
 
 ### 🗺️ Visualización Geográfica
 - Mapa interactivo con Google Maps
@@ -73,6 +94,13 @@ http://localhost:5000
 - Longitud total de vías
 - Costo promedio por kilómetro
 
+### 🔍 Vista Detallada
+- Información completa del proyecto
+- **Unidades Funcionales**: Tabla con características técnicas de cada UF
+- **Items de Costo**: Desglose detallado de costos causados por item
+- Mapa de la ruta del proyecto
+- Total acumulado por items
+
 ### 🤖 Modelo Predictivo
 - Predicción de costos basada en parámetros del proyecto
 - Interfaz simple para ingreso de datos
@@ -81,26 +109,28 @@ http://localhost:5000
 ## 🎯 Separación de Responsabilidades
 
 ### Backend (`app.py`)
-- Endpoints REST API
+- Endpoints REST API para 3 modelos (Proyecto, UnidadFuncional, Item)
 - Lógica de negocio
 - Integración con base de datos
 - Predicciones ML
 
 ### Modelos (`models.py`)
-- Esquema de base de datos
-- Operaciones CRUD
-- Inicialización de datos
+- Esquema de base de datos (3 tablas relacionadas)
+- Operaciones CRUD por modelo
+- Inicialización de datos con samples
 
-### Frontend (`static/js/app.js`)
-- Estado de la aplicación (Vue reactivo)
-- Interacción con API
-- Lógica de UI
+### Frontend (Vue 3 + Router)
+- **Router (`app.js`)**: Navegación SPA con 5 rutas
+- **Estado global**: Proyectos, selección, formularios (inject/provide)
+- **Componentes (`templates/components/`)**: Vistas modulares separadas
+- **Template base (`base.html`)**: Layout común con Jinja2
 - Integración con Google Maps
 
 ### Estilos (`static/css/style.css`)
 - Diseño visual
 - Variables CSS para temas
 - Responsive design
+- Estilos para tablas de UFs e Items
 
 ## 🛠️ Próximos Pasos
 
@@ -153,11 +183,26 @@ from flask_login import LoginManager, login_required
 
 ## 🔑 API Endpoints
 
+### Proyectos
 - `GET /api/proyectos` - Listar todos los proyectos
-- `GET /api/proyectos/<id>` - Obtener un proyecto
+- `GET /api/proyectos/<id>` - Obtener un proyecto por ID
+- `GET /api/proyectos/codigo/<codigo>` - Obtener un proyecto por código
 - `POST /api/proyectos` - Crear proyecto
 - `PUT /api/proyectos/<id>` - Actualizar proyecto
 - `DELETE /api/proyectos/<id>` - Eliminar proyecto
+
+### Unidades Funcionales
+- `GET /api/unidades-funcionales/<codigo>` - Obtener UFs de un proyecto
+- `POST /api/unidades-funcionales` - Crear unidad funcional
+- `DELETE /api/unidades-funcionales/<id>` - Eliminar unidad funcional
+
+### Items de Costo
+- `GET /api/items/<codigo>` - Obtener items de un proyecto
+- `POST /api/items` - Crear item
+- `PUT /api/items/<id>` - Actualizar item
+- `DELETE /api/items/<id>` - Eliminar item
+
+### Predicción
 - `POST /api/predict` - Predecir costo
 
 ## 💡 Consejos

@@ -339,6 +339,35 @@ tbody tr.selected {
     font-style: italic;
 }
 
+.detalle-section {
+    margin-top: 2rem;
+    padding: 1.5rem;
+    background: var(--background);
+    border-radius: 0.75rem;
+}
+
+.detalle-section h3 {
+    margin-bottom: 1rem;
+    color: var(--text);
+}
+
+.detalle-section table {
+    width: 100%;
+    font-size: 0.875rem;
+}
+
+.detalle-section table tfoot {
+    background: var(--background);
+    font-weight: 600;
+}
+
+.no-data {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-light);
+    font-style: italic;
+}
+
 @media (max-width: 1024px) {
     .grid {
         grid-template-columns: 1fr;
@@ -346,6 +375,10 @@ tbody tr.selected {
     
     .form-grid {
         grid-template-columns: 1fr;
+    }
+    
+    .detalle-section table {
+        font-size: 0.75rem;
     }
 }
 

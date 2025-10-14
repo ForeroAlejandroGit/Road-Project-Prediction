@@ -1,0 +1,83 @@
+{% raw %}
+<div class="view-form">
+    <h2>{{ editingProyecto ? 'Editar Proyecto' : 'Nuevo Proyecto' }}</h2>
+    <form @submit.prevent="saveProyecto">
+        <div class="form-grid">
+            <div class="form-group">
+                <label>Nombre del Proyecto</label>
+                <input v-model="form.nombre" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Código</label>
+                <input v-model="form.codigo" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Número de UF's</label>
+                <input v-model.number="form.num_ufs" type="number" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Longitud (km)</label>
+                <input v-model.number="form.longitud" type="number" step="0.01" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Año de Inicio</label>
+                <input v-model.number="form.anio_inicio" type="number" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Duración (meses)</label>
+                <input v-model.number="form.duracion" type="number" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Fase</label>
+                <select v-model="form.fase" required>
+                    <option>Detalle</option>
+                    <option>Ejecución</option>
+                    <option>Terminado</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Ubicación</label>
+                <input v-model="form.ubicacion" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Costo</label>
+                <input v-model.number="form.costo" type="number" step="0.01" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Latitud Inicio</label>
+                <input v-model.number="form.lat_inicio" type="number" step="0.0001" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Longitud Inicio</label>
+                <input v-model.number="form.lng_inicio" type="number" step="0.0001" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Latitud Fin</label>
+                <input v-model.number="form.lat_fin" type="number" step="0.0001" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Longitud Fin</label>
+                <input v-model.number="form.lng_fin" type="number" step="0.0001" required>
+            </div>
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit" class="btn-primary">{{ editingProyecto ? 'Actualizar' : 'Crear' }} Proyecto</button>
+            <button type="button" @click="cancelForm" class="btn-secondary">Cancelar</button>
+        </div>
+    </form>
+</div>
+{% endraw %}
+
