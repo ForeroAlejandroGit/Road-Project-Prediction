@@ -8,7 +8,7 @@ app.config.from_object(Config)
 CORS(app)
 
 init_db()
-
+##
 @app.route('/')
 def index():
     return render_template('index.html', maps_api_key=Config.GOOGLE_MAPS_API_KEY)

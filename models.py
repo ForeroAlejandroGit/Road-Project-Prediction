@@ -6,6 +6,7 @@ def get_db():
     db.row_factory = sqlite3.Row
     return db
 
+
 def init_db():
     db = get_db()
     db.execute('''

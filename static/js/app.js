@@ -6,7 +6,7 @@ let markers = [];
 function initMap() {
     const mapDiv = document.getElementById('map');
     if (!mapDiv) {
-        // Try again on next tick; router may not have rendered Inicio yet
+        // Try again on next tick; router may not have rendered Inicio yet /
         setTimeout(initMap, 50);
         return;
     }

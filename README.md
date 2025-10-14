@@ -223,5 +223,5 @@ from flask_login import LoginManager, login_required
 
 ---
 
-**Desarrollado como prototipo funcional para predicción de costos en proyectos viales** 🛣️
+**Desarrollado como prototipo funcional para predicción de costos en proyectos viales**
 
