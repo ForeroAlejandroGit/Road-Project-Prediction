@@ -1,5 +1,5 @@
 
-# 🛣️ Sistema de Predicción de Costos en Proyectos Viales
+# Sistema de Predicción de Costos en Proyectos Viales
 
 Aplicación web para gestión y predicción de costos en proyectos de infraestructura vial utilizando Machine Learning.
 
