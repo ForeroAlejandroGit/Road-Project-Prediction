@@ -166,33 +166,24 @@
             <p v-if="form.unidades_funcionales.length === 0" class="no-data">No hay unidades funcionales. Haga clic en "+ Agregar UF" para añadir.</p>
         </div>
 
-        <!-- Items de Costo -->
+        <!-- Items de Costo (Fijos) -->
         <div class="form-section">
-            <div class="form-section-title">
-                💰 Items de Costo
-                <button type="button" @click="addItem" class="btn-add">+ Agregar Item</button>
-            </div>
+            <div class="form-section-title">💰 Items de Costo</div>
             
-            <div v-for="(item, index) in form.items" :key="index" class="nested-form">
-                <div class="nested-form-header">
-                    <span class="nested-form-title">Item {{ index + 1 }}</span>
-                    <button type="button" @click="removeItem(index)" class="btn-remove">Eliminar</button>
-                </div>
-                
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>Descripción Item</label>
-                        <input v-model="item.item" required placeholder="Ej: 1 - TRANSPORTE">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Causado</label>
-                        <input v-model.number="item.causado" type="number" step="0.01" required>
+            <div class="items-grid">
+                <div class="item-row" v-for="(item, index) in form.items" :key="index">
+                    <div class="item-label">{{ item.item }}</div>
+                    <div class="item-input">
+                        <span class="currency-symbol">$</span>
+                        <input v-model.number="item.causado" type="number" step="0.01" min="0" placeholder="0.00">
                     </div>
                 </div>
             </div>
             
-            <p v-if="form.items.length === 0" class="no-data">No hay items de costo. Haga clic en "+ Agregar Item" para añadir.</p>
+            <div class="item-total">
+                <span class="total-label">Total Causado:</span>
+                <span class="total-value">$ {{ formatNumber(totalCausado) }}</span>
+            </div>
         </div>
         
         <div class="form-actions">

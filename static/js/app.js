@@ -107,10 +107,21 @@ const Nuevo = {
     inject: ['appState'],
     computed: {
         editingProyecto() { return this.appState.editingProyecto; },
-        form() { return this.appState.form; }
+        form() { return this.appState.form; },
+        totalCausado() {
+            return this.form.items.reduce((sum, item) => sum + (item.causado || 0), 0);
+        }
     },
     methods: {
+        formatNumber(num) {
+            return new Intl.NumberFormat('es-CO').format(num);
+        },
         async saveProyecto() {
+            if (this.form.unidades_funcionales.length === 0) {
+                alert('Debe agregar al menos una Unidad Funcional');
+                return;
+            }
+            
             const method = this.editingProyecto ? 'PUT' : 'POST';
             const url = this.editingProyecto 
                 ? `/api/proyectos/${this.editingProyecto.id}` 
@@ -141,19 +152,17 @@ const Nuevo = {
             const result = await response.json();
             const codigo = this.form.codigo;
             
-            if (this.form.unidades_funcionales.length > 0) {
-                for (const uf of this.form.unidades_funcionales) {
-                    uf.codigo = codigo;
-                    await fetch('/api/unidades-funcionales', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(uf)
-                    });
-                }
+            for (const uf of this.form.unidades_funcionales) {
+                uf.codigo = codigo;
+                await fetch('/api/unidades-funcionales', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(uf)
+                });
             }
             
-            if (this.form.items.length > 0) {
-                for (const item of this.form.items) {
+            for (const item of this.form.items) {
+                if (item.causado > 0) {
                     item.codigo = codigo;
                     await fetch('/api/items', {
                         method: 'POST',
@@ -190,15 +199,6 @@ const Nuevo = {
         removeUnidadFuncional(index) {
             this.form.unidades_funcionales.splice(index, 1);
         },
-        addItem() {
-            this.form.items.push({
-                item: '',
-                causado: 0
-            });
-        },
-        removeItem(index) {
-            this.form.items.splice(index, 1);
-        }
     }
 };
 
@@ -400,7 +400,28 @@ const app = createApp({
                 lat_fin: 0,
                 lng_fin: 0,
                 unidades_funcionales: [],
-                items: []
+                items: [
+                    { item: '1 - TRANSPORTE', causado: 0 },
+                    { item: '2.1 - INFORMACIÓN GEOGRÁFICA', causado: 0 },
+                    { item: '2.2 TRAZADO Y DISEÑO GEOMÉTRICO', causado: 0 },
+                    { item: '2.3 - SEGURIDAD VIAL', causado: 0 },
+                    { item: '2.4 - SISTEMAS INTELIGENTES', causado: 0 },
+                    { item: '3.1 - GEOLOGÍA', causado: 0 },
+                    { item: '3.2 - HIDROGEOLOGÍA', causado: 0 },
+                    { item: '4 - SUELOS', causado: 0 },
+                    { item: '5 - TALUDES', causado: 0 },
+                    { item: '6 - PAVIMENTO', causado: 0 },
+                    { item: '7 - SOCAVACIÓN', causado: 0 },
+                    { item: '8 - ESTRUCTURAS', causado: 0 },
+                    { item: '9 - TÚNELES', causado: 0 },
+                    { item: '10 - URBANISMO Y PAISAJISMO', causado: 0 },
+                    { item: '11 - PREDIAL', causado: 0 },
+                    { item: '12 - IMPACTO AMBIENTA', causado: 0 },
+                    { item: '13 - CANTIDADES', causado: 0 },
+                    { item: '14 - EVALUACIÓN SOCIOECONÓMICA', causado: 0 },
+                    { item: '15 - OTROS - MANEJO DE REDES', causado: 0 },
+                    { item: '16 - DIRECCIÓN Y CORDINACIÓN', causado: 0 }
+                ]
             };
         }
     },
