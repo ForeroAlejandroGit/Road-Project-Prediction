@@ -1,5 +1,6 @@
 import sqlite3
-from config import Config
+from src.config import Config
+
 
 def get_db():
     db = sqlite3.connect(Config.DATABASE)
@@ -113,6 +114,7 @@ def init_db():
     
     db.close()
 
+
 class Proyecto:
     @staticmethod
     def get_all():
@@ -174,6 +176,7 @@ class Proyecto:
         db.commit()
         db.close()
 
+
 class UnidadFuncional:
     @staticmethod
     def get_by_codigo(codigo):
@@ -205,6 +208,7 @@ class UnidadFuncional:
         db.execute('DELETE FROM unidad_funcional WHERE id = ?', (uf_id,))
         db.commit()
         db.close()
+
 
 class Item:
     @staticmethod
@@ -241,4 +245,5 @@ class Item:
         db.execute('DELETE FROM item WHERE id = ?', (item_id,))
         db.commit()
         db.close()
+
 

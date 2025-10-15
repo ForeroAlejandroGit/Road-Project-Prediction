@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, jsonify
 from flask_cors import CORS
-from models import init_db, Proyecto, UnidadFuncional, Item
-from config import Config
+from src.models import init_db, Proyecto, UnidadFuncional, Item
+from src.config import Config
 
 app = Flask(__name__)
 app.config.from_object(Config)
