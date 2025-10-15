@@ -116,11 +116,52 @@ const Nuevo = {
                 ? `/api/proyectos/${this.editingProyecto.id}` 
                 : '/api/proyectos';
             
-            await fetch(url, {
+            const proyectoData = {
+                nombre: this.form.nombre,
+                codigo: this.form.codigo,
+                num_ufs: this.form.num_ufs,
+                longitud: this.form.longitud,
+                anio_inicio: this.form.anio_inicio,
+                duracion: this.form.duracion,
+                fase: this.form.fase,
+                ubicacion: this.form.ubicacion,
+                costo: this.form.costo,
+                lat_inicio: this.form.lat_inicio,
+                lng_inicio: this.form.lng_inicio,
+                lat_fin: this.form.lat_fin,
+                lng_fin: this.form.lng_fin
+            };
+            
+            const response = await fetch(url, {
                 method: method,
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(this.form)
+                body: JSON.stringify(proyectoData)
             });
+            
+            const result = await response.json();
+            const codigo = this.form.codigo;
+            
+            if (this.form.unidades_funcionales.length > 0) {
+                for (const uf of this.form.unidades_funcionales) {
+                    uf.codigo = codigo;
+                    await fetch('/api/unidades-funcionales', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(uf)
+                    });
+                }
+            }
+            
+            if (this.form.items.length > 0) {
+                for (const item of this.form.items) {
+                    item.codigo = codigo;
+                    await fetch('/api/items', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(item)
+                    });
+                }
+            }
             
             await this.appState.loadProyectos();
             this.cancelForm();
@@ -130,6 +171,33 @@ const Nuevo = {
             this.appState.form = this.appState.getEmptyForm();
             this.appState.editingProyecto = null;
             this.$router.push('/');
+        },
+        addUnidadFuncional() {
+            this.form.unidades_funcionales.push({
+                unidad_funcional: this.form.unidades_funcionales.length + 1,
+                longitud_km: 0,
+                puentes_vehiculares_und: 0,
+                puentes_vehiculares_mt2: 0,
+                puentes_peatonales_und: 0,
+                puentes_peatonales_mt2: 0,
+                tuneles_und: 0,
+                tuneles_km: 0,
+                alcance: 'Primera calzada',
+                zona: 'Rural',
+                tipo_terreno: 'Plano'
+            });
+        },
+        removeUnidadFuncional(index) {
+            this.form.unidades_funcionales.splice(index, 1);
+        },
+        addItem() {
+            this.form.items.push({
+                item: '',
+                causado: 0
+            });
+        },
+        removeItem(index) {
+            this.form.items.splice(index, 1);
         }
     }
 };
@@ -267,8 +335,20 @@ const app = createApp({
             proyectos: [],
             selectedProyecto: null,
             editingProyecto: null,
-            form: this.getEmptyForm()
+            form: this.getEmptyForm(),
+            logoUrl: LOGO_URL
         };
+    },
+    computed: {
+        currentTitle() {
+            const route = this.$route.path;
+            if (route === '/') return 'Inicio';
+            if (route === '/nuevo') return this.editingProyecto ? 'Editar Proyecto' : 'Nuevo Proyecto';
+            if (route === '/detalle') return 'Detalle del Proyecto';
+            if (route === '/historicos') return 'Análisis Histórico';
+            if (route === '/modelo') return 'Modelo Predictivo';
+            return 'Sistema de Predicción de Costos';
+        }
     },
     methods: {
         async loadProyectos() {
@@ -318,7 +398,9 @@ const app = createApp({
                 lat_inicio: 0,
                 lng_inicio: 0,
                 lat_fin: 0,
-                lng_fin: 0
+                lng_fin: 0,
+                unidades_funcionales: [],
+                items: []
             };
         }
     },
