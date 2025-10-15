@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # 🛣️ Sistema de Predicción de Costos en Proyectos Viales
 
 Aplicación web para gestión y predicción de costos en proyectos de infraestructura vial utilizando Machine Learning.
@@ -225,3 +226,6 @@ from flask_login import LoginManager, login_required
 
 **Desarrollado como prototipo funcional para predicción de costos en proyectos viales**
 
+=======
+# Road-Project-Prediction
+>>>>>>> 536d46ae6df45eda35aa7733cb2c26d4adb2a82e
