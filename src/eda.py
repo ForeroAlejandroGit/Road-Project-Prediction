@@ -140,8 +140,11 @@ class EDA:
         w.columns = [f'{c} WEIGHT' for c in cols]
         df = df.join(w)
         df =df.apply(self.weighted_values, axis=1)
-        df = df.drop(columns=['NOMBRE DEL PROYECTO'])
+        nombre_series = df['NOMBRE DEL PROYECTO']
+        codigo_series = df['CÓDIGO DEL PROYECTO']
         df = df.loc[:, 'LONGITUD KM':'16 - DIRECCIÓN Y COORDINACIÓN']
+        df.insert(0, 'NOMBRE DEL PROYECTO', nombre_series)
+        df.insert(1, 'CÓDIGO', codigo_series)
         
         return df
     
