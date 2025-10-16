@@ -68,24 +68,35 @@ def delete_unidad_funcional(uf_id):
 @app.route('/api/items/<codigo>', methods=['GET'])
 def get_items(codigo):
     items = Item.get_by_codigo(codigo)
-    return jsonify(items)
+    if items:
+        return jsonify(items)
+    return jsonify({'error': 'Items no encontrados'}), 404
 
 @app.route('/api/items', methods=['POST'])
 def create_item():
     data = request.get_json(silent=True) or {}
-    item_id = Item.create(data)
-    return jsonify({'id': item_id, 'message': 'Item creado'}), 201
+    codigo = data.get('codigo')
+    
+    # Check if items already exist for this codigo
+    existing = Item.get_by_codigo(codigo)
+    if existing:
+        Item.update(codigo, data)
+        return jsonify({'message': 'Items actualizados'})
+    else:
+        item_id = Item.create(data)
+        return jsonify({'id': item_id, 'message': 'Items creados'}), 201
 
-@app.route('/api/items/<int:item_id>', methods=['PUT'])
-def update_item(item_id):
+@app.route('/api/items/<codigo>', methods=['PUT'])
+def update_item(codigo):
     data = request.get_json(silent=True) or {}
-    Item.update(item_id, data)
-    return jsonify({'message': 'Item actualizado'})
+    data['codigo'] = codigo
+    Item.update(codigo, data)
+    return jsonify({'message': 'Items actualizados'})
 
-@app.route('/api/items/<int:item_id>', methods=['DELETE'])
-def delete_item(item_id):
-    Item.delete(item_id)
-    return jsonify({'message': 'Item eliminado'})
+@app.route('/api/items/<codigo>', methods=['DELETE'])
+def delete_item(codigo):
+    Item.delete(codigo)
+    return jsonify({'message': 'Items eliminados'})
 
 @app.route('/api/predict', methods=['POST'])
 def predict_cost():

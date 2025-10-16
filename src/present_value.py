@@ -1,39 +1,21 @@
 import requests, pandas as pd, time
-
-AUTH_URL = "https://gestiona.ingetec.com.co/ReportBi/Auth/login"
-DATA_URL = "https://gestiona.ingetec.com.co/ReportBi/api/Report/GetSalaryIncreasePerYear"
-USERNAME = "powerbi_report"
-PASSWORD = "1ngete2025_*"
-
+import sqlite3
+from config import Config
 class PresentValue:
 
     def __init__(self):
         self.incremento = None
-       
-    def isEmpty(self) -> bool:
-        if self.incremento is None:
-            return True
-        return False
-        
-    def fetch_salary_increase_per_year(self) -> pd.Series:
-        """Authenticate and fetch the yearly salary increases (list of dicts)."""
-        """Fetch increments and cache for `cache_ttl` each month in seconds."""
-        if self.incremento is not None:
-            return self.incremento  # return cached data
-        
-        with requests.Session() as s:
-            auth = s.post(AUTH_URL, json={"username": USERNAME, "password": PASSWORD}, timeout=15)
-            auth.raise_for_status()
-            token = auth.json().get("token") or auth.json().get("access_token")
-            if not token:
-                raise RuntimeError("No token found in auth response.")
-            resp = s.get(DATA_URL, headers={"Authorization": f"Bearer {token}"}, timeout=15)
-            resp.raise_for_status()
-            
-            data = resp.json()
-            self.incremento = pd.Series({item["año_aumento"]: item["incremento"] for item in data})
-            
-            return self.incremento
+
+    def fetch_incremento_from_database(self) -> pd.Series:
+        with sqlite3.connect(Config.DATABASE) as conn:
+            df = pd.read_sql_query("SELECT * FROM anual_increment", conn)
+            # Convert DataFrame to Series - assuming first column is year and second is increment
+            if df.shape[1] == 2:
+                self.incremento = df.set_index(df.columns[0])[df.columns[1]]
+            else:
+                # If only one column with index, squeeze to Series
+                self.incremento = df.squeeze()
+        return self.incremento
 
     def present_value(self, past_value: float, past_year: int, present_year: int = None) -> float:
         """Compound yearly increments from past_year+1 to present_year and return present value."""

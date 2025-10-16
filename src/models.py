@@ -52,9 +52,27 @@ def init_db():
     db.execute('''
         CREATE TABLE IF NOT EXISTS item (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            codigo TEXT NOT NULL,
-            item TEXT NOT NULL,
-            causado REAL,
+            codigo TEXT NOT NULL UNIQUE,
+            transporte REAL DEFAULT 0,
+            informacion_geografica REAL DEFAULT 0,
+            trazado_diseno_geometrico REAL DEFAULT 0,
+            seguridad_vial REAL DEFAULT 0,
+            sistemas_inteligentes REAL DEFAULT 0,
+            geologia REAL DEFAULT 0,
+            hidrogeologia REAL DEFAULT 0,
+            suelos REAL DEFAULT 0,
+            taludes REAL DEFAULT 0,
+            pavimento REAL DEFAULT 0,
+            socavacion REAL DEFAULT 0,
+            estructuras REAL DEFAULT 0,
+            tuneles REAL DEFAULT 0,
+            urbanismo_paisajismo REAL DEFAULT 0,
+            predial REAL DEFAULT 0,
+            impacto_ambiental REAL DEFAULT 0,
+            cantidades REAL DEFAULT 0,
+            evaluacion_socioeconomica REAL DEFAULT 0,
+            otros_manejo_redes REAL DEFAULT 0,
+            direccion_coordinacion REAL DEFAULT 0,
             FOREIGN KEY (codigo) REFERENCES proyectos(codigo) ON DELETE CASCADE
         )
     ''')
@@ -84,30 +102,13 @@ def init_db():
         ''', uf_sample)
         
         item_sample = [
-            ('6935', '1 - TRANSPORTE', 0),
-            ('6935', '2 1 - INFORMACIÓN GEOGRAFICA', 0),
-            ('6935', '2 2 TRAZADO Y DISEÑO GEOMETRICO', 48662655),
-            ('6935', '2 3 - SEGURIDAD VIAL', 29502029),
-            ('6935', '2 4 - SISTEMAS INTELIGENTES', 31376747),
-            ('6935', '3 1 - GEOLOGÍA', 0),
-            ('6935', '3 2 - HIDROGEOLOGÍA', 48023645),
-            ('6935', '4 - SUELOS', 64347356),
-            ('6935', '5 - TALUDES', 78892217),
-            ('6935', '6 - PAVIMENTO', 27445905),
-            ('6935', '7 - SOCAVACIÓN', 70781010),
-            ('6935', '8 - ESTRUCTURAS', 226142019),
-            ('6935', '9 - TÚNELES', 0),
-            ('6935', '10 - URBANISMO Y PAISAJISMO', 16129209),
-            ('6935', '11 - PREDIAL', 0),
-            ('6935', '12 - IMPACTO AMBIENTA', 0),
-            ('6935', '13 - CANTIDADES', 0),
-            ('6935', '14 - EVALUACIÓN SOCIOECONÓMICA', 0),
-            ('6935', '15 - OTROS - MANEJO DE RESIDUOS', 117131003),
-            ('6935', '16 - DIRECCIÓN Y CORDINACIÓN', 104254285),
+            ('6935', 0, 0, 48662655, 29502029, 31376747, 0, 48023645, 64347356, 78892217, 27445905, 70781010, 226142019, 0, 16129209, 0, 0, 0, 0, 117131003, 104254285),
         ]
         db.executemany('''
-            INSERT INTO item (codigo, item, causado)
-            VALUES (?, ?, ?)
+            INSERT INTO item (codigo, transporte, informacion_geografica, trazado_diseno_geometrico, seguridad_vial, sistemas_inteligentes,
+                            geologia, hidrogeologia, suelos, taludes, pavimento, socavacion, estructuras, tuneles, urbanismo_paisajismo,
+                            predial, impacto_ambiental, cantidades, evaluacion_socioeconomica, otros_manejo_redes, direccion_coordinacion)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', item_sample)
         
         db.commit()
@@ -211,38 +212,85 @@ class UnidadFuncional:
 
 
 class Item:
+    ITEM_COLUMNS = [
+        'transporte', 'informacion_geografica', 'trazado_diseno_geometrico', 
+        'seguridad_vial', 'sistemas_inteligentes', 'geologia', 'hidrogeologia',
+        'suelos', 'taludes', 'pavimento', 'socavacion', 'estructuras', 'tuneles',
+        'urbanismo_paisajismo', 'predial', 'impacto_ambiental', 'cantidades',
+        'evaluacion_socioeconomica', 'otros_manejo_redes', 'direccion_coordinacion'
+    ]
+    
+    ITEM_LABELS = {
+        'transporte': '1 - TRANSPORTE',
+        'informacion_geografica': '2.1 - INFORMACIÓN GEOGRÁFICA',
+        'trazado_diseno_geometrico': '2.2 TRAZADO Y DISEÑO GEOMÉTRICO',
+        'seguridad_vial': '2.3 - SEGURIDAD VIAL',
+        'sistemas_inteligentes': '2.4 - SISTEMAS INTELIGENTES',
+        'geologia': '3.1 - GEOLOGÍA',
+        'hidrogeologia': '3.2 - HIDROGEOLOGÍA',
+        'suelos': '4 - SUELOS',
+        'taludes': '5 - TALUDES',
+        'pavimento': '6 - PAVIMENTO',
+        'socavacion': '7 - SOCAVACIÓN',
+        'estructuras': '8 - ESTRUCTURAS',
+        'tuneles': '9 - TÚNELES',
+        'urbanismo_paisajismo': '10 - URBANISMO Y PAISAJISMO',
+        'predial': '11 - PREDIAL',
+        'impacto_ambiental': '12 - IMPACTO AMBIENTAL',
+        'cantidades': '13 - CANTIDADES',
+        'evaluacion_socioeconomica': '14 - EVALUACIÓN SOCIOECONÓMICA',
+        'otros_manejo_redes': '15 - OTROS - MANEJO DE REDES',
+        'direccion_coordinacion': '16 - DIRECCIÓN Y COORDINACIÓN'
+    }
+    
     @staticmethod
     def get_by_codigo(codigo):
         db = get_db()
-        items = db.execute('SELECT * FROM item WHERE codigo = ? ORDER BY item', (codigo,)).fetchall()
+        item_row = db.execute('SELECT * FROM item WHERE codigo = ?', (codigo,)).fetchone()
         db.close()
-        return [dict(i) for i in items]
+        
+        if not item_row:
+            return None
+        
+        return dict(item_row)
     
     @staticmethod
     def create(data):
         db = get_db()
-        cursor = db.execute('''
-            INSERT INTO item (codigo, item, causado)
-            VALUES (?, ?, ?)
-        ''', (data['codigo'], data['item'], data['causado']))
+        columns = ['codigo'] + Item.ITEM_COLUMNS
+        placeholders = ', '.join(['?'] * len(columns))
+        column_names = ', '.join(columns)
+        
+        values = [data.get('codigo')]
+        for col in Item.ITEM_COLUMNS:
+            values.append(data.get(col, 0))
+        
+        cursor = db.execute(f'''
+            INSERT INTO item ({column_names})
+            VALUES ({placeholders})
+        ''', values)
         db.commit()
         item_id = cursor.lastrowid
         db.close()
         return item_id
     
     @staticmethod
-    def update(item_id, data):
+    def update(codigo, data):
         db = get_db()
-        db.execute('''
-            UPDATE item SET causado = ? WHERE id = ?
-        ''', (data['causado'], item_id))
+        set_clause = ', '.join([f'{col} = ?' for col in Item.ITEM_COLUMNS])
+        values = [data.get(col, 0) for col in Item.ITEM_COLUMNS]
+        values.append(codigo)
+        
+        db.execute(f'''
+            UPDATE item SET {set_clause} WHERE codigo = ?
+        ''', values)
         db.commit()
         db.close()
     
     @staticmethod
-    def delete(item_id):
+    def delete(codigo):
         db = get_db()
-        db.execute('DELETE FROM item WHERE id = ?', (item_id,))
+        db.execute('DELETE FROM item WHERE codigo = ?', (codigo,))
         db.commit()
         db.close()
 

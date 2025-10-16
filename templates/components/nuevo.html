@@ -172,10 +172,10 @@
             
             <div class="items-grid">
                 <div class="item-row" v-for="(item, index) in form.items" :key="index">
-                    <div class="item-label">{{ item.item }}</div>
+                    <div class="item-label">{{ item.label }}</div>
                     <div class="item-input">
                         <span class="currency-symbol">$</span>
-                        <input v-model.number="item.causado" type="number" step="0.01" min="0" placeholder="0.00">
+                        <input v-model.number="item.value" type="number" step="0.01" min="0" placeholder="0.00">
                     </div>
                 </div>
             </div>

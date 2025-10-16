@@ -109,7 +109,7 @@ const Nuevo = {
         editingProyecto() { return this.appState.editingProyecto; },
         form() { return this.appState.form; },
         totalCausado() {
-            return this.form.items.reduce((sum, item) => sum + (item.causado || 0), 0);
+            return this.form.items.reduce((sum, item) => sum + (item.value || 0), 0);
         }
     },
     methods: {
@@ -161,16 +161,17 @@ const Nuevo = {
                 });
             }
             
+            // Save items as a single record
+            const itemsData = { codigo: codigo };
             for (const item of this.form.items) {
-                if (item.causado > 0) {
-                    item.codigo = codigo;
-                    await fetch('/api/items', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(item)
-                    });
-                }
+                itemsData[item.field] = item.value || 0;
             }
+            
+            await fetch('/api/items', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(itemsData)
+            });
             
             await this.appState.loadProyectos();
             this.cancelForm();
@@ -208,13 +209,35 @@ const Detalle = {
     data() {
         return {
             unidadesFuncionales: [],
-            items: []
+            items: [],
+            itemLabels: {
+                'transporte': '1 - TRANSPORTE',
+                'informacion_geografica': '2.1 - INFORMACIÓN GEOGRÁFICA',
+                'trazado_diseno_geometrico': '2.2 TRAZADO Y DISEÑO GEOMÉTRICO',
+                'seguridad_vial': '2.3 - SEGURIDAD VIAL',
+                'sistemas_inteligentes': '2.4 - SISTEMAS INTELIGENTES',
+                'geologia': '3.1 - GEOLOGÍA',
+                'hidrogeologia': '3.2 - HIDROGEOLOGÍA',
+                'suelos': '4 - SUELOS',
+                'taludes': '5 - TALUDES',
+                'pavimento': '6 - PAVIMENTO',
+                'socavacion': '7 - SOCAVACIÓN',
+                'estructuras': '8 - ESTRUCTURAS',
+                'tuneles': '9 - TÚNELES',
+                'urbanismo_paisajismo': '10 - URBANISMO Y PAISAJISMO',
+                'predial': '11 - PREDIAL',
+                'impacto_ambiental': '12 - IMPACTO AMBIENTAL',
+                'cantidades': '13 - CANTIDADES',
+                'evaluacion_socioeconomica': '14 - EVALUACIÓN SOCIOECONÓMICA',
+                'otros_manejo_redes': '15 - OTROS - MANEJO DE REDES',
+                'direccion_coordinacion': '16 - DIRECCIÓN Y COORDINACIÓN'
+            }
         };
     },
     computed: {
         selectedProyecto() { return this.appState.selectedProyecto; },
         totalItems() {
-            return this.items.reduce((sum, item) => sum + item.causado, 0);
+            return this.items.reduce((sum, item) => sum + (item.causado || 0), 0);
         }
     },
     methods: {
@@ -229,7 +252,17 @@ const Detalle = {
                     fetch(`/api/items/${codigo}`)
                 ]);
                 this.unidadesFuncionales = await ufsRes.json();
-                this.items = await itemsRes.json();
+                
+                // Convert items object to array for display
+                const itemsData = await itemsRes.json();
+                if (itemsData && !itemsData.error) {
+                    this.items = Object.keys(this.itemLabels).map(field => ({
+                        item: this.itemLabels[field],
+                        causado: itemsData[field] || 0
+                    }));
+                } else {
+                    this.items = [];
+                }
             }
         }
     },
@@ -401,26 +434,26 @@ const app = createApp({
                 lng_fin: 0,
                 unidades_funcionales: [],
                 items: [
-                    { item: '1 - TRANSPORTE', causado: 0 },
-                    { item: '2.1 - INFORMACIÓN GEOGRÁFICA', causado: 0 },
-                    { item: '2.2 TRAZADO Y DISEÑO GEOMÉTRICO', causado: 0 },
-                    { item: '2.3 - SEGURIDAD VIAL', causado: 0 },
-                    { item: '2.4 - SISTEMAS INTELIGENTES', causado: 0 },
-                    { item: '3.1 - GEOLOGÍA', causado: 0 },
-                    { item: '3.2 - HIDROGEOLOGÍA', causado: 0 },
-                    { item: '4 - SUELOS', causado: 0 },
-                    { item: '5 - TALUDES', causado: 0 },
-                    { item: '6 - PAVIMENTO', causado: 0 },
-                    { item: '7 - SOCAVACIÓN', causado: 0 },
-                    { item: '8 - ESTRUCTURAS', causado: 0 },
-                    { item: '9 - TÚNELES', causado: 0 },
-                    { item: '10 - URBANISMO Y PAISAJISMO', causado: 0 },
-                    { item: '11 - PREDIAL', causado: 0 },
-                    { item: '12 - IMPACTO AMBIENTA', causado: 0 },
-                    { item: '13 - CANTIDADES', causado: 0 },
-                    { item: '14 - EVALUACIÓN SOCIOECONÓMICA', causado: 0 },
-                    { item: '15 - OTROS - MANEJO DE REDES', causado: 0 },
-                    { item: '16 - DIRECCIÓN Y CORDINACIÓN', causado: 0 }
+                    { label: '1 - TRANSPORTE', field: 'transporte', value: 0 },
+                    { label: '2.1 - INFORMACIÓN GEOGRÁFICA', field: 'informacion_geografica', value: 0 },
+                    { label: '2.2 TRAZADO Y DISEÑO GEOMÉTRICO', field: 'trazado_diseno_geometrico', value: 0 },
+                    { label: '2.3 - SEGURIDAD VIAL', field: 'seguridad_vial', value: 0 },
+                    { label: '2.4 - SISTEMAS INTELIGENTES', field: 'sistemas_inteligentes', value: 0 },
+                    { label: '3.1 - GEOLOGÍA', field: 'geologia', value: 0 },
+                    { label: '3.2 - HIDROGEOLOGÍA', field: 'hidrogeologia', value: 0 },
+                    { label: '4 - SUELOS', field: 'suelos', value: 0 },
+                    { label: '5 - TALUDES', field: 'taludes', value: 0 },
+                    { label: '6 - PAVIMENTO', field: 'pavimento', value: 0 },
+                    { label: '7 - SOCAVACIÓN', field: 'socavacion', value: 0 },
+                    { label: '8 - ESTRUCTURAS', field: 'estructuras', value: 0 },
+                    { label: '9 - TÚNELES', field: 'tuneles', value: 0 },
+                    { label: '10 - URBANISMO Y PAISAJISMO', field: 'urbanismo_paisajismo', value: 0 },
+                    { label: '11 - PREDIAL', field: 'predial', value: 0 },
+                    { label: '12 - IMPACTO AMBIENTAL', field: 'impacto_ambiental', value: 0 },
+                    { label: '13 - CANTIDADES', field: 'cantidades', value: 0 },
+                    { label: '14 - EVALUACIÓN SOCIOECONÓMICA', field: 'evaluacion_socioeconomica', value: 0 },
+                    { label: '15 - OTROS - MANEJO DE REDES', field: 'otros_manejo_redes', value: 0 },
+                    { label: '16 - DIRECCIÓN Y COORDINACIÓN', field: 'direccion_coordinacion', value: 0 }
                 ]
             };
         }

@@ -1,11 +1,13 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+import sqlite3
 import present_value as PresentValue
+from config import Config
 
 class EDA:
-    def __init__(self, filename: str):
-        self.filename = filename
+    def __init__(self, ):
+        self.filename = "../data/BASE DE DATOS PRESUPUESTOS.xlsx"
     
     def get_head(self, df: pd.DataFrame) -> pd.DataFrame:
         df_head = df.iloc[ 0:15 , 0:2 ]
@@ -33,7 +35,7 @@ class EDA:
         columns_names_items = [ "1 - TRANSPORTE", "2 - TRAZADO Y DISEÑO GEOMÉTRICO", "2.1 - INFORMACIÓN GEOGRÁFICA", "2.2 TRAZADO Y DISEÑO GEOMÉTRICO", "2.3 - SEGURIDAD VIAL",
                             "2.4 - SISTEMAS INTELIGENTES", "3 - GEOLOGÍA", "3.1 - GEOLOGÍA", "3.2 - HIDROGEOLOGÍA", "4 - SUELOS", "5 - TALUDES", "6 - PAVIMENTO",
                             "7 - SOCAVACIÓN", "8 - ESTRUCTURAS", "9 - TÚNELES", "10 - URBANISMO Y PAISAJISMO", "11 - PREDIAL", "12 - IMPACTO AMBIENTAL",
-                            "13 - CANTIDADES", "14 - EVALUACIÓN SOCIOECONÓMICA", "15 - OTROS - MANEJO DE REDES", "16 - DIRECCIÓN Y COORDINACIÓN",  ]
+                            "13 - CANTIDADES", "14 - EVALUACIÓN SOCIOECONÓMICA", "15 - OTROS - MANEJO DE REDES", "16 - DIRECCIÓN Y COORDINACIÓN" ]
         
         df_items = df.iloc[ 17:, 0:2 ]
         df_items = pd.DataFrame([df_items.iloc[:,1].to_list()], columns=columns_names_items) 
@@ -60,7 +62,7 @@ class EDA:
             
         return pd.concat(rows, axis=0, ignore_index=True)
     
-    def assemble_project(self) -> pd.DataFrame:
+    def assemble_projects_from_excel(self) -> pd.DataFrame:
         with pd.ExcelFile(self.filename, engine="openpyxl") as xls:
             
             project_names = [project_name for project_name in xls.sheet_names if project_name.isnumeric()]
@@ -82,12 +84,12 @@ class EDA:
         #Longitude analysis
         longitude_weigth = row['LONGITUD KM WEIGHT']
         row['1 - TRANSPORTE'] *= longitude_weigth
-        row['2 - TRAZADO Y DISEÑO GEOMÉTRICO'] *= longitude_weigth
+        # row['2 - TRAZADO Y DISEÑO GEOMÉTRICO'] *= longitude_weigth
         row['2.1 - INFORMACIÓN GEOGRÁFICA'] *= longitude_weigth
         row['2.2 TRAZADO Y DISEÑO GEOMÉTRICO'] *= longitude_weigth
         row['2.3 - SEGURIDAD VIAL'] *= longitude_weigth
         row['2.4 - SISTEMAS INTELIGENTES'] *= longitude_weigth
-        row['3 - GEOLOGÍA'] *= longitude_weigth   
+        # row['3 - GEOLOGÍA'] *= longitude_weigth   
         row['3.1 - GEOLOGÍA'] *= longitude_weigth
         row['3.2 - HIDROGEOLOGÍA'] *= longitude_weigth
 
@@ -99,6 +101,7 @@ class EDA:
         row['12 - IMPACTO AMBIENTAL'] *= longitude_weigth
 
         row['15 - OTROS - MANEJO DE REDES'] *= longitude_weigth
+        row['16 - DIRECCIÓN Y COORDINACIÓN'] *= longitude_weigth
         
         #Bridge analysis
         bridge_weigth = 1
@@ -111,7 +114,7 @@ class EDA:
         #Tunnel analysis
         tunnel_weight = 1
         if row['TUNELES UND'] > 0:
-            tunnel_weight = row['TUNELES UND WEIGHT'] + row['TUNELES M2 WEIGHT']
+            tunnel_weight = row['TUNELES UND WEIGHT'] + row['TUNELES KM WEIGHT']
             row['9 - TÚNELES'] *= tunnel_weight
         
         #Urbanism analysis
@@ -124,20 +127,21 @@ class EDA:
 
     def create_dataset(self, present_value_costs) -> pd.DataFrame:
         
-        df = self.assemble_project()
-
+        df = self.assemble_projects_from_excel()
+        # df = self.assemble_projects_from_database()
+        
         mask = df.columns[df.columns.str.match(r"^\d")].tolist()
         df_present_value = df.apply(present_value_costs, axis=1, mask=mask, present_year=2025)
         df = df_present_value.drop(columns=['AÑO INICIO', 'NOMBRE UF'])
 
-        cols = df.loc[:, 'LONGITUD KM':'TUNELES M2'].columns
+        cols = df.loc[:, 'LONGITUD KM':'TUNELES KM'].columns
         totals = df.groupby('NOMBRE DEL PROYECTO')[cols].transform('sum').replace(0, pd.NA)
         w = (df[cols] / totals).fillna(0)
         w.columns = [f'{c} WEIGHT' for c in cols]
         df = df.join(w)
         df =df.apply(self.weighted_values, axis=1)
         df = df.drop(columns=['NOMBRE DEL PROYECTO'])
-        df = df.loc[:, 'LONGITUD KM':'15 - OTROS - MANEJO DE REDES']
+        df = df.loc[:, 'LONGITUD KM':'16 - DIRECCIÓN Y COORDINACIÓN']
         
         return df
     
@@ -165,3 +169,110 @@ class EDA:
         plt.suptitle('Data Analysis', fontsize=16, weight='bold')
         plt.tight_layout()
         plt.show()
+
+    def assemble_projects_from_database(self, database_path: str = None) -> pd.DataFrame:
+        
+        if database_path is None:
+            database_path = Config.DATABASE
+        
+        # Mapping from database field names to Excel column names
+        item_field_to_excel = {
+            'transporte': '1 - TRANSPORTE',
+            'informacion_geografica': '2.1 - INFORMACIÓN GEOGRÁFICA',
+            'trazado_diseno_geometrico': '2.2 TRAZADO Y DISEÑO GEOMÉTRICO',
+            'seguridad_vial': '2.3 - SEGURIDAD VIAL',
+            'sistemas_inteligentes': '2.4 - SISTEMAS INTELIGENTES',
+            'geologia': '3.1 - GEOLOGÍA',
+            'hidrogeologia': '3.2 - HIDROGEOLOGÍA',
+            'suelos': '4 - SUELOS',
+            'taludes': '5 - TALUDES',
+            'pavimento': '6 - PAVIMENTO',
+            'socavacion': '7 - SOCAVACIÓN',
+            'estructuras': '8 - ESTRUCTURAS',
+            'tuneles': '9 - TÚNELES',
+            'urbanismo_paisajismo': '10 - URBANISMO Y PAISAJISMO',
+            'predial': '11 - PREDIAL',
+            'impacto_ambiental': '12 - IMPACTO AMBIENTAL',
+            'cantidades': '13 - CANTIDADES',
+            'evaluacion_socioeconomica': '14 - EVALUACIÓN SOCIOECONÓMICA',
+            'otros_manejo_redes': '15 - OTROS - MANEJO DE REDES',
+            'direccion_coordinacion': '16 - DIRECCIÓN Y COORDINACIÓN'
+        }
+        
+        # Connect to database
+        conn = sqlite3.connect(database_path)
+        
+        # Query to join all three tables
+        query = """
+        SELECT 
+            p.nombre AS 'NOMBRE DEL PROYECTO',
+            p.codigo AS 'CÓDIGO DEL PROYECTO',
+            p.anio_inicio AS 'AÑO INICIO',
+            p.fase AS 'FASE',
+            p.ubicacion AS 'DEPARTAMENTO',
+            uf.longitud_km AS 'LONGITUD KM',
+            uf.puentes_vehiculares_und AS 'PUENTES VEHICULARES UND',
+            uf.puentes_vehiculares_mt2 AS 'PUENTES VEHICULARES M2',
+            uf.puentes_peatonales_und AS 'PUENTES PEATONALES UND',
+            uf.puentes_peatonales_mt2 AS 'PUENTES PEATONALES M2',
+            uf.tuneles_und AS 'TUNELES UND',
+            uf.tuneles_km AS 'TUNELES KM',
+            uf.alcance AS 'ALCANCE',
+            uf.zona AS 'ZONA',
+            uf.tipo_terreno AS 'TIPO TERRENO',
+            'UF' || uf.unidad_funcional AS 'NOMBRE UF',
+            i.transporte,
+            i.informacion_geografica,
+            i.trazado_diseno_geometrico,
+            i.seguridad_vial,
+            i.sistemas_inteligentes,
+            i.geologia,
+            i.hidrogeologia,
+            i.suelos,
+            i.taludes,
+            i.pavimento,
+            i.socavacion,
+            i.estructuras,
+            i.tuneles,
+            i.urbanismo_paisajismo,
+            i.predial,
+            i.impacto_ambiental,
+            i.cantidades,
+            i.evaluacion_socioeconomica,
+            i.otros_manejo_redes,
+            i.direccion_coordinacion
+        FROM proyectos p
+        INNER JOIN unidad_funcional uf ON p.codigo = uf.codigo
+        INNER JOIN item i ON p.codigo = i.codigo
+        ORDER BY p.codigo, uf.unidad_funcional
+        """
+        
+        # Load data into dataframe
+        df = pd.read_sql_query(query, conn)
+        conn.close()
+        
+        # Rename item columns to match Excel format
+        for db_field, excel_col in item_field_to_excel.items():
+            if db_field in df.columns:
+                df.rename(columns={db_field: excel_col}, inplace=True)
+        
+        # Reorder columns to match original structure
+        column_order = [
+            'NOMBRE DEL PROYECTO', 'CÓDIGO DEL PROYECTO', 'AÑO INICIO', 'FASE', 'DEPARTAMENTO',
+            'LONGITUD KM', 'PUENTES VEHICULARES UND', 'PUENTES VEHICULARES M2',
+            'PUENTES PEATONALES UND', 'PUENTES PEATONALES M2', 'TUNELES UND', 'TUNELES KM',
+            'ALCANCE', 'ZONA', 'TIPO TERRENO', 'NOMBRE UF',
+            '1 - TRANSPORTE', '2.1 - INFORMACIÓN GEOGRÁFICA', '2.2 TRAZADO Y DISEÑO GEOMÉTRICO',
+            '2.3 - SEGURIDAD VIAL', '2.4 - SISTEMAS INTELIGENTES',
+            '3.1 - GEOLOGÍA', '3.2 - HIDROGEOLOGÍA', '4 - SUELOS', '5 - TALUDES',
+            '6 - PAVIMENTO', '7 - SOCAVACIÓN', '8 - ESTRUCTURAS', '9 - TÚNELES',
+            '10 - URBANISMO Y PAISAJISMO', '11 - PREDIAL', '12 - IMPACTO AMBIENTAL',
+            '13 - CANTIDADES', '14 - EVALUACIÓN SOCIOECONÓMICA',
+            '15 - OTROS - MANEJO DE REDES', '16 - DIRECCIÓN Y COORDINACIÓN'
+        ]
+        
+        # Only include columns that exist in the dataframe
+        column_order = [col for col in column_order if col in df.columns]
+        df = df[column_order]
+        
+        return df
