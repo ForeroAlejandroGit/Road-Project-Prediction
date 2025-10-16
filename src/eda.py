@@ -127,8 +127,8 @@ class EDA:
 
     def create_dataset(self, present_value_costs) -> pd.DataFrame:
         
-        df = self.assemble_projects_from_excel()
-        # df = self.assemble_projects_from_database()
+        # df = self.assemble_projects_from_excel()
+        df = self.assemble_projects_from_database()
         
         mask = df.columns[df.columns.str.match(r"^\d")].tolist()
         df_present_value = df.apply(present_value_costs, axis=1, mask=mask, present_year=2025)
