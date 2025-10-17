@@ -26,6 +26,11 @@ class PresentValue:
 
         if present_year is None:
             present_year = min(pd.Timestamp.now().year, int(inc.index.max()))
+        
+        # Ensure years are integers (handle numpy.float64 from DataFrames)
+        past_year = int(past_year)
+        present_year = int(present_year)
+        
         if present_year <= past_year:
             return float(past_value)
 
@@ -35,9 +40,10 @@ class PresentValue:
         return float(past_value) * float(factor)
     
     def present_value_costs(self, row: pd.Series, mask: list[str], present_year: int) -> pd.Series:
+        new_row = row.copy()
         for col in mask:
-            row[col] = self.present_value(row[col], row['AÑO INICIO'], present_year) 
-        return row
+            new_row[col] = self.present_value(new_row[col], new_row['AÑO INICIO'], present_year) 
+        return new_row
 
     
 # Example: compute present value for 1,000,000 from 2015 to latest available

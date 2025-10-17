@@ -3,4 +3,5 @@ Flask-CORS==6.0.1
 scikit-learn==1.7.2
 numpy==2.2.5
 pandas==2.3.2
-
+plotly==6.3.1
+nbformat>=4.2.0

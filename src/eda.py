@@ -78,52 +78,61 @@ class EDA:
         return pd.concat(df_project, axis=0, ignore_index=True)
     
     def weighted_values(self, row: pd.Series) -> pd.Series:
-
-        row = row.fillna(0)
+        new_row = row.copy()
+        new_row = new_row.fillna(0)
 
         #Longitude analysis
-        longitude_weigth = row['LONGITUD KM WEIGHT']
-        row['1 - TRANSPORTE'] *= longitude_weigth
+        longitude_weigth = new_row['LONGITUD KM WEIGHT']
+        new_row['1 - TRANSPORTE'] *= longitude_weigth
         # row['2 - TRAZADO Y DISEÑO GEOMÉTRICO'] *= longitude_weigth
-        row['2.1 - INFORMACIÓN GEOGRÁFICA'] *= longitude_weigth
-        row['2.2 TRAZADO Y DISEÑO GEOMÉTRICO'] *= longitude_weigth
-        row['2.3 - SEGURIDAD VIAL'] *= longitude_weigth
-        row['2.4 - SISTEMAS INTELIGENTES'] *= longitude_weigth
+        new_row['2.1 - INFORMACIÓN GEOGRÁFICA'] *= longitude_weigth
+        new_row['2.2 TRAZADO Y DISEÑO GEOMÉTRICO'] *= longitude_weigth
+        new_row['2.3 - SEGURIDAD VIAL'] *= longitude_weigth
+        new_row['2.4 - SISTEMAS INTELIGENTES'] *= longitude_weigth
         # row['3 - GEOLOGÍA'] *= longitude_weigth   
-        row['3.1 - GEOLOGÍA'] *= longitude_weigth
-        row['3.2 - HIDROGEOLOGÍA'] *= longitude_weigth
+        new_row['3.1 - GEOLOGÍA'] *= longitude_weigth
+        new_row['3.2 - HIDROGEOLOGÍA'] *= longitude_weigth
 
-        row['5 - TALUDES'] *= longitude_weigth
-        row['6 - PAVIMENTO'] *= longitude_weigth
-        row['7 - SOCAVACIÓN'] *=     longitude_weigth
+        new_row['5 - TALUDES'] *= longitude_weigth
+        new_row['6 - PAVIMENTO'] *= longitude_weigth
+        new_row['7 - SOCAVACIÓN'] *=     longitude_weigth
 
-        row['11 - PREDIAL'] *= longitude_weigth
-        row['12 - IMPACTO AMBIENTAL'] *= longitude_weigth
+        new_row['11 - PREDIAL'] *= longitude_weigth
+        new_row['12 - IMPACTO AMBIENTAL'] *= longitude_weigth
 
-        row['15 - OTROS - MANEJO DE REDES'] *= longitude_weigth
-        row['16 - DIRECCIÓN Y COORDINACIÓN'] *= longitude_weigth
+        new_row['15 - OTROS - MANEJO DE REDES'] *= longitude_weigth
+        new_row['16 - DIRECCIÓN Y COORDINACIÓN'] *= longitude_weigth
         
-        #Bridge analysis
-        bridge_weigth = 1
-        if row['PUENTES VEHICULARES UND'] > 0 or row['PUENTES PEATONALES UND'] > 0:
-            bridges_ratio = 3
-            bridge_weigth = ((row['PUENTES VEHICULARES UND WEIGHT'] + row['PUENTES VEHICULARES M2 WEIGHT'])*bridges_ratio + row['PUENTES PEATONALES UND WEIGHT'])/bridges_ratio*3
-            row['4 - SUELOS'] *= bridge_weigth
-            row['8 - ESTRUCTURAS'] *= bridge_weigth
         
-        #Tunnel analysis
-        tunnel_weight = 1
-        if row['TUNELES UND'] > 0:
-            tunnel_weight = row['TUNELES UND WEIGHT'] + row['TUNELES KM WEIGHT']
-            row['9 - TÚNELES'] *= tunnel_weight
+        #fake analysis
+        new_row['4 - SUELOS'] *= longitude_weigth
+        new_row['8 - ESTRUCTURAS'] *= longitude_weigth
+        new_row['9 - TÚNELES'] *= longitude_weigth
+        new_row['10 - URBANISMO Y PAISAJISMO'] *= longitude_weigth
+        new_row['13 - CANTIDADES'] *= longitude_weigth
         
-        #Urbanism analysis
-        urbanism_weight = 1
-        if row['PUENTES PEATONALES UND'] > 0:  
-            urbanism_weight = row['PUENTES PEATONALES UND WEIGHT']
-            row['10 - URBANISMO Y PAISAJISMO'] *= urbanism_weight
+        ###TODO: Add bridge, tunnel and urbanism analysis
+        # #Bridge analysis
+        # bridge_weigth = 1
+        # if new_row['PUENTES VEHICULARES UND'] > 0 or new_row['PUENTES PEATONALES UND'] > 0:
+        #     bridges_ratio = 3
+        #     bridge_weigth = ((new_row['PUENTES VEHICULARES UND WEIGHT'] + new_row['PUENTES VEHICULARES M2 WEIGHT'])*bridges_ratio + new_row['PUENTES PEATONALES UND WEIGHT'])/bridges_ratio*3
+        #     new_row['4 - SUELOS'] *= bridge_weigth
+        #     new_row['8 - ESTRUCTURAS'] *= bridge_weigth
         
-        return row
+        # #Tunnel analysis
+        # tunnel_weight = 1
+        # if new_row['TUNELES UND'] > 0:
+        #     tunnel_weight = new_row['TUNELES UND WEIGHT'] + new_row['TUNELES KM WEIGHT']
+        #     row['9 - TÚNELES'] *= tunnel_weight
+        
+        # #Urbanism analysis
+        # urbanism_weight = 1
+        # if new_row['PUENTES PEATONALES UND'] > 0:  
+        #     urbanism_weight = row['PUENTES PEATONALES UND WEIGHT']
+        #     new_row['10 - URBANISMO Y PAISAJISMO'] *= urbanism_weight
+        
+        return new_row
 
     def create_dataset(self, present_value_costs) -> pd.DataFrame:
         
