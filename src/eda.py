@@ -150,67 +150,132 @@ class EDA:
 
         return pd.concat(df_project, axis=0, ignore_index=True)
     
-    def weighted_values(self, row: pd.Series) -> pd.Series:
+    def weighted_values(self, row: pd.Series, fase: str) -> pd.Series:
+        """
+        Apply weighted values to row based on the specified fase.
+        
+        Args:
+            row: DataFrame row with project data
+            fase: The project phase ('I', 'II', or 'III')
+        
+        Returns:
+            Series with weighted values applied
+        """
         new_row = row.copy()
         new_row = new_row.fillna(0)
+        
+        # Validate fase parameter
+        if fase not in ['I', 'II', 'III']:
+            raise ValueError("fase must be 'I', 'II', or 'III'")
 
-        #Longitude analysis
+        # Get longitude weight (common to all phases)
         longitude_weigth = new_row['LONGITUD KM WEIGHT']
-        new_row['1 - TRANSPORTE'] *= longitude_weigth
-        # row['2 - TRAZADO Y DISEÑO GEOMÉTRICO'] *= longitude_weigth
-        new_row['2.1 - INFORMACIÓN GEOGRÁFICA'] *= longitude_weigth
-        new_row['2.2 TRAZADO Y DISEÑO GEOMÉTRICO'] *= longitude_weigth
-        new_row['2.3 - SEGURIDAD VIAL'] *= longitude_weigth
-        new_row['2.4 - SISTEMAS INTELIGENTES'] *= longitude_weigth
-        # row['3 - GEOLOGÍA'] *= longitude_weigth   
-        new_row['3.1 - GEOLOGÍA'] *= longitude_weigth
-        new_row['3.2 - HIDROGEOLOGÍA'] *= longitude_weigth
-
-        new_row['5 - TALUDES'] *= longitude_weigth
-        new_row['6 - PAVIMENTO'] *= longitude_weigth
-        new_row['7 - SOCAVACIÓN'] *=     longitude_weigth
-
-        new_row['11 - PREDIAL'] *= longitude_weigth
-        new_row['12 - IMPACTO AMBIENTAL'] *= longitude_weigth
-
-        new_row['15 - OTROS - MANEJO DE REDES'] *= longitude_weigth
-        new_row['16 - DIRECCIÓN Y COORDINACIÓN'] *= longitude_weigth
         
+        if fase == 'I':
+            # Fase I - Apply longitude weight to most items
+            new_row['1 - TRANSPORTE'] *= longitude_weigth
+            new_row['2 - DISEÑO GEOMÉTRICO'] *= longitude_weigth
+            new_row['3 - PREFACTIBILIDAD TÚNELES'] *= longitude_weigth
+            new_row['4 - GEOLOGIA'] *= longitude_weigth
+            new_row['5 - GEOTECNIA'] *= longitude_weigth
+            new_row['6 - HIDROLOGÍA E HIDRÁULICA'] *= longitude_weigth
+            new_row['7 - AMBIENTAL Y SOCIAL'] *= longitude_weigth
+            new_row['8 - PREDIAL'] *= longitude_weigth
+            new_row['9 - RIESGOS Y SOSTENIBILIDAD'] *= longitude_weigth
+            new_row['10 - EVALUACIÓN ECONÓMICA'] *= longitude_weigth
+            new_row['11 - SOCIO ECONÓMICA, FINANCIERA'] *= longitude_weigth
+            new_row['12 - ESTRUCTURAS'] *= longitude_weigth
+            new_row['13 - DIRECCIÓN Y COORDINACIÓN'] *= longitude_weigth
+            
+        elif fase == 'II':
+            # Fase II - Apply longitude weight to most items
+            new_row['1 - TRANSPORTE'] *= longitude_weigth
+            new_row['2 - TRAZADO Y TOPOGRAFIA (incluye subcomponentes)'] *= longitude_weigth
+            new_row['3 - GEOLOGÍA (incluye subcomponentes)'] *= longitude_weigth
+            new_row['4 - TALUDES'] *= longitude_weigth
+            new_row['5 - HIDROLOGÍA E HIDRÁULICA'] *= longitude_weigth
+            new_row['6 - ESTRUCTURAS'] *= longitude_weigth
+            new_row['7 - TÚNELES'] *= longitude_weigth
+            new_row['8 - PAVIMENTO'] *= longitude_weigth
+            new_row['9 - PREDIAL'] *= longitude_weigth
+            new_row['10 - AMBIENTAL Y SOCIAL'] *= longitude_weigth
+            new_row['11 - COSTOS Y PRESUPUESTOS'] *= longitude_weigth
+            new_row['12 - SOCIOECONÓMICA'] *= longitude_weigth
+            new_row['13 - DIRECCIÓN Y COORDINACIÓN'] *= longitude_weigth
+            
+        else:  # fase == 'III'
+            # Fase III - Original logic with detailed breakdown
+            new_row['1 - TRANSPORTE'] *= longitude_weigth
+            new_row['2.1 - INFORMACIÓN GEOGRÁFICA'] *= longitude_weigth
+            new_row['2.2 - TRAZADO Y DISEÑO GEOMÉTRICO'] *= longitude_weigth
+            new_row['2.3 - SEGURIDAD VIAL'] *= longitude_weigth
+            new_row['2.4 - SISTEMAS INTELIGENTES'] *= longitude_weigth
+            new_row['3.1 - GEOLOGÍA'] *= longitude_weigth
+            new_row['3.2 - HIDROGEOLOGÍA'] *= longitude_weigth
+            new_row['4 - SUELOS'] *= longitude_weigth
+            new_row['5 - TALUDES'] *= longitude_weigth
+            new_row['6 - PAVIMENTO'] *= longitude_weigth
+            new_row['7 - SOCAVACIÓN'] *= longitude_weigth
+            new_row['8 - ESTRUCTURAS'] *= longitude_weigth
+            new_row['9 - TÚNELES'] *= longitude_weigth
+            new_row['10 - URBANISMO Y PAISAJISMO'] *= longitude_weigth
+            new_row['11 - PREDIAL'] *= longitude_weigth
+            new_row['12 - IMPACTO AMBIENTAL'] *= longitude_weigth
+            new_row['13 - CANTIDADES'] *= longitude_weigth
+            new_row['14 - EVALUACIÓN SOCIOECONÓMICA'] *= longitude_weigth
+            new_row['15 - OTROS - MANEJO DE REDES'] *= longitude_weigth
+            new_row['16 - DIRECCIÓN Y COORDINACIÓN'] *= longitude_weigth
         
-        #fake analysis
-        new_row['4 - SUELOS'] *= longitude_weigth
-        new_row['8 - ESTRUCTURAS'] *= longitude_weigth
-        new_row['9 - TÚNELES'] *= longitude_weigth
-        new_row['10 - URBANISMO Y PAISAJISMO'] *= longitude_weigth
-        new_row['13 - CANTIDADES'] *= longitude_weigth
-        
-        ###TODO: Add bridge, tunnel and urbanism analysis
+        ###TODO: Add bridge, tunnel and urbanism analysis (commented for future implementation)
         # #Bridge analysis
         # bridge_weigth = 1
         # if new_row['PUENTES VEHICULARES UND'] > 0 or new_row['PUENTES PEATONALES UND'] > 0:
         #     bridges_ratio = 3
         #     bridge_weigth = ((new_row['PUENTES VEHICULARES UND WEIGHT'] + new_row['PUENTES VEHICULARES M2 WEIGHT'])*bridges_ratio + new_row['PUENTES PEATONALES UND WEIGHT'])/bridges_ratio*3
-        #     new_row['4 - SUELOS'] *= bridge_weigth
-        #     new_row['8 - ESTRUCTURAS'] *= bridge_weigth
+        #     # Apply to structures column based on fase
+        #     if fase == 'I':
+        #         new_row['12 - ESTRUCTURAS'] *= bridge_weigth
+        #     elif fase == 'II':
+        #         new_row['6 - ESTRUCTURAS'] *= bridge_weigth
+        #     else:  # fase III
+        #         new_row['4 - SUELOS'] *= bridge_weigth
+        #         new_row['8 - ESTRUCTURAS'] *= bridge_weigth
         
         # #Tunnel analysis
         # tunnel_weight = 1
         # if new_row['TUNELES UND'] > 0:
         #     tunnel_weight = new_row['TUNELES UND WEIGHT'] + new_row['TUNELES KM WEIGHT']
-        #     row['9 - TÚNELES'] *= tunnel_weight
+        #     # Apply to tunnel column based on fase
+        #     if fase == 'I':
+        #         new_row['3 - PREFACTIBILIDAD TÚNELES'] *= tunnel_weight
+        #     elif fase == 'II':
+        #         new_row['7 - TÚNELES'] *= tunnel_weight
+        #     else:  # fase III
+        #         new_row['9 - TÚNELES'] *= tunnel_weight
         
         # #Urbanism analysis
         # urbanism_weight = 1
         # if new_row['PUENTES PEATONALES UND'] > 0:  
-        #     urbanism_weight = row['PUENTES PEATONALES UND WEIGHT']
-        #     new_row['10 - URBANISMO Y PAISAJISMO'] *= urbanism_weight
+        #     urbanism_weight = new_row['PUENTES PEATONALES UND WEIGHT']
+        #     # Apply to urbanism column (only exists in some phases)
+        #     if fase == 'III':
+        #         new_row['10 - URBANISMO Y PAISAJISMO'] *= urbanism_weight
         
         return new_row
 
-    def create_dataset(self, present_value_costs) -> pd.DataFrame:
+    def create_dataset(self, present_value_costs, fase: str = 'III') -> pd.DataFrame:
+        """
+        Creates a dataset from the database with present value costs applied.
         
+        Args:
+            present_value_costs: Function to calculate present value costs
+            fase: The project phase ('I', 'II', or 'III'). Defaults to 'III' for backward compatibility.
+        
+        Returns:
+            DataFrame with processed project data
+        """
         # df = self.assemble_projects_from_excel()
-        df = self.assemble_projects_from_database()
+        df = self.assemble_projects_from_database(fase=fase)
         
         mask = df.columns[df.columns.str.match(r"^\d")].tolist()
         df_present_value = df.apply(present_value_costs, axis=1, mask=mask, present_year=2025)
@@ -221,10 +286,19 @@ class EDA:
         w = (df[cols] / totals).fillna(0)
         w.columns = [f'{c} WEIGHT' for c in cols]
         df = df.join(w)
-        df =df.apply(self.weighted_values, axis=1)
+        df = df.apply(self.weighted_values, axis=1, fase=fase)
         nombre_series = df['NOMBRE DEL PROYECTO']
         codigo_series = df['CÓDIGO DEL PROYECTO']
-        df = df.loc[:, 'LONGITUD KM':'16 - DIRECCIÓN Y COORDINACIÓN']
+        
+        # Determine the last item column based on fase
+        if fase == 'I':
+            last_column = '13 - DIRECCIÓN Y COORDINACIÓN'
+        elif fase == 'II':
+            last_column = '13 - DIRECCIÓN Y COORDINACIÓN'
+        else:  # fase == 'III'
+            last_column = '16 - DIRECCIÓN Y COORDINACIÓN'
+        
+        df = df.loc[:, 'LONGITUD KM':last_column]
         df.insert(0, 'NOMBRE DEL PROYECTO', nombre_series)
         df.insert(1, 'CÓDIGO', codigo_series)
         
@@ -255,40 +329,116 @@ class EDA:
         plt.tight_layout()
         plt.show()
 
-    def assemble_projects_from_database(self, database_path: str = None) -> pd.DataFrame:
+    def assemble_projects_from_database(self, fase: str, database_path: str = None) -> pd.DataFrame:
+        """
+        Assembles project data from database based on the specified fase.
         
+        Args:
+            fase: The project phase ('I', 'II', or 'III')
+            database_path: Path to the database (defaults to Config.DATABASE)
+        
+        Returns:
+            DataFrame with project data for the specified fase
+        """
         if database_path is None:
             database_path = Config.DATABASE
         
-        # Mapping from database field names to Excel column names
-        item_field_to_excel = {
-            'transporte': '1 - TRANSPORTE',
-            'informacion_geografica': '2.1 - INFORMACIÓN GEOGRÁFICA',
-            'trazado_diseno_geometrico': '2.2 TRAZADO Y DISEÑO GEOMÉTRICO',
-            'seguridad_vial': '2.3 - SEGURIDAD VIAL',
-            'sistemas_inteligentes': '2.4 - SISTEMAS INTELIGENTES',
-            'geologia': '3.1 - GEOLOGÍA',
-            'hidrogeologia': '3.2 - HIDROGEOLOGÍA',
-            'suelos': '4 - SUELOS',
-            'taludes': '5 - TALUDES',
-            'pavimento': '6 - PAVIMENTO',
-            'socavacion': '7 - SOCAVACIÓN',
-            'estructuras': '8 - ESTRUCTURAS',
-            'tuneles': '9 - TÚNELES',
-            'urbanismo_paisajismo': '10 - URBANISMO Y PAISAJISMO',
-            'predial': '11 - PREDIAL',
-            'impacto_ambiental': '12 - IMPACTO AMBIENTAL',
-            'cantidades': '13 - CANTIDADES',
-            'evaluacion_socioeconomica': '14 - EVALUACIÓN SOCIOECONÓMICA',
-            'otros_manejo_redes': '15 - OTROS - MANEJO DE REDES',
-            'direccion_coordinacion': '16 - DIRECCIÓN Y COORDINACIÓN'
-        }
+        # Validate fase parameter
+        if fase not in ['I', 'II', 'III']:
+            raise ValueError("fase must be 'I', 'II', or 'III'")
+        
+        # Define item table and field mappings based on fase
+        if fase == 'I':
+            item_table = 'item_fase_i'
+            item_field_to_excel = {
+                'transporte': '1 - TRANSPORTE',
+                'diseno_geometrico': '2 - DISEÑO GEOMÉTRICO',
+                'prefactibilidad_tuneles': '3 - PREFACTIBILIDAD TÚNELES',
+                'geologia': '4 - GEOLOGIA',
+                'geotecnia': '5 - GEOTECNIA',
+                'hidrologia_hidraulica': '6 - HIDROLOGÍA E HIDRÁULICA',
+                'ambiental_social': '7 - AMBIENTAL Y SOCIAL',
+                'predial': '8 - PREDIAL',
+                'riesgos_sostenibilidad': '9 - RIESGOS Y SOSTENIBILIDAD',
+                'evaluacion_economica': '10 - EVALUACIÓN ECONÓMICA',
+                'socioeconomica_financiera': '11 - SOCIO ECONÓMICA, FINANCIERA',
+                'estructuras': '12 - ESTRUCTURAS',
+                'direccion_coordinacion': '13 - DIRECCIÓN Y COORDINACIÓN'
+            }
+            item_columns = [
+                '1 - TRANSPORTE', '2 - DISEÑO GEOMÉTRICO', '3 - PREFACTIBILIDAD TÚNELES',
+                '4 - GEOLOGIA', '5 - GEOTECNIA', '6 - HIDROLOGÍA E HIDRÁULICA',
+                '7 - AMBIENTAL Y SOCIAL', '8 - PREDIAL', '9 - RIESGOS Y SOSTENIBILIDAD',
+                '10 - EVALUACIÓN ECONÓMICA', '11 - SOCIO ECONÓMICA, FINANCIERA',
+                '12 - ESTRUCTURAS', '13 - DIRECCIÓN Y COORDINACIÓN'
+            ]
+        elif fase == 'II':
+            item_table = 'item_fase_ii'
+            item_field_to_excel = {
+                'transporte': '1 - TRANSPORTE',
+                'topografia': '2 - TRAZADO Y TOPOGRAFIA (incluye subcomponentes)',
+                'geologia': '3 - GEOLOGÍA (incluye subcomponentes)',
+                'taludes': '4 - TALUDES',
+                'hidrologia_hidraulica': '5 - HIDROLOGÍA E HIDRÁULICA',
+                'estructuras': '6 - ESTRUCTURAS',
+                'tuneles': '7 - TÚNELES',
+                'pavimento': '8 - PAVIMENTO',
+                'predial': '9 - PREDIAL',
+                'ambiental_social': '10 - AMBIENTAL Y SOCIAL',
+                'costos_presupuestos': '11 - COSTOS Y PRESUPUESTOS',
+                'socioeconomica': '12 - SOCIOECONÓMICA',
+                'direccion_coordinacion': '13 - DIRECCIÓN Y COORDINACIÓN'
+            }
+            item_columns = [
+                '1 - TRANSPORTE', '2 - TRAZADO Y TOPOGRAFIA (incluye subcomponentes)',
+                '3 - GEOLOGÍA (incluye subcomponentes)', '4 - TALUDES',
+                '5 - HIDROLOGÍA E HIDRÁULICA', '6 - ESTRUCTURAS', '7 - TÚNELES',
+                '8 - PAVIMENTO', '9 - PREDIAL', '10 - AMBIENTAL Y SOCIAL',
+                '11 - COSTOS Y PRESUPUESTOS', '12 - SOCIOECONÓMICA',
+                '13 - DIRECCIÓN Y COORDINACIÓN'
+            ]
+        else:  # fase == 'III'
+            item_table = 'item_fase_iii'
+            item_field_to_excel = {
+                'transporte': '1 - TRANSPORTE',
+                'informacion_geografica': '2.1 - INFORMACIÓN GEOGRÁFICA',
+                'trazado_diseno_geometrico': '2.2 - TRAZADO Y DISEÑO GEOMÉTRICO',
+                'seguridad_vial': '2.3 - SEGURIDAD VIAL',
+                'sistemas_inteligentes': '2.4 - SISTEMAS INTELIGENTES',
+                'geologia': '3.1 - GEOLOGÍA',
+                'hidrogeologia': '3.2 - HIDROGEOLOGÍA',
+                'suelos': '4 - SUELOS',
+                'taludes': '5 - TALUDES',
+                'pavimento': '6 - PAVIMENTO',
+                'socavacion': '7 - SOCAVACIÓN',
+                'estructuras': '8 - ESTRUCTURAS',
+                'tuneles': '9 - TÚNELES',
+                'urbanismo_paisajismo': '10 - URBANISMO Y PAISAJISMO',
+                'predial': '11 - PREDIAL',
+                'impacto_ambiental': '12 - IMPACTO AMBIENTAL',
+                'cantidades': '13 - CANTIDADES',
+                'evaluacion_socioeconomica': '14 - EVALUACIÓN SOCIOECONÓMICA',
+                'otros_manejo_redes': '15 - OTROS - MANEJO DE REDES',
+                'direccion_coordinacion': '16 - DIRECCIÓN Y COORDINACIÓN'
+            }
+            item_columns = [
+                '1 - TRANSPORTE', '2.1 - INFORMACIÓN GEOGRÁFICA', '2.2 - TRAZADO Y DISEÑO GEOMÉTRICO',
+                '2.3 - SEGURIDAD VIAL', '2.4 - SISTEMAS INTELIGENTES',
+                '3.1 - GEOLOGÍA', '3.2 - HIDROGEOLOGÍA', '4 - SUELOS', '5 - TALUDES',
+                '6 - PAVIMENTO', '7 - SOCAVACIÓN', '8 - ESTRUCTURAS', '9 - TÚNELES',
+                '10 - URBANISMO Y PAISAJISMO', '11 - PREDIAL', '12 - IMPACTO AMBIENTAL',
+                '13 - CANTIDADES', '14 - EVALUACIÓN SOCIOECONÓMICA',
+                '15 - OTROS - MANEJO DE REDES', '16 - DIRECCIÓN Y COORDINACIÓN'
+            ]
         
         # Connect to database
         conn = sqlite3.connect(database_path)
         
+        # Build the item column selections dynamically
+        item_selects = ',\n            '.join([f'i.{db_field}' for db_field in item_field_to_excel.keys()])
+        
         # Query to join all three tables
-        query = """
+        query = f"""
         SELECT 
             p.nombre AS 'NOMBRE DEL PROYECTO',
             p.codigo AS 'CÓDIGO DEL PROYECTO',
@@ -306,29 +456,10 @@ class EDA:
             uf.zona AS 'ZONA',
             uf.tipo_terreno AS 'TIPO TERRENO',
             'UF' || uf.unidad_funcional AS 'NOMBRE UF',
-            i.transporte,
-            i.informacion_geografica,
-            i.trazado_diseno_geometrico,
-            i.seguridad_vial,
-            i.sistemas_inteligentes,
-            i.geologia,
-            i.hidrogeologia,
-            i.suelos,
-            i.taludes,
-            i.pavimento,
-            i.socavacion,
-            i.estructuras,
-            i.tuneles,
-            i.urbanismo_paisajismo,
-            i.predial,
-            i.impacto_ambiental,
-            i.cantidades,
-            i.evaluacion_socioeconomica,
-            i.otros_manejo_redes,
-            i.direccion_coordinacion
+            {item_selects}
         FROM proyectos p
         INNER JOIN unidad_funcional uf ON p.codigo = uf.codigo
-        INNER JOIN item i ON p.codigo = i.codigo
+        INNER JOIN {item_table} i ON p.codigo = i.codigo
         ORDER BY p.codigo, uf.unidad_funcional
         """
         
@@ -346,15 +477,8 @@ class EDA:
             'NOMBRE DEL PROYECTO', 'CÓDIGO DEL PROYECTO', 'AÑO INICIO', 'FASE', 'DEPARTAMENTO',
             'LONGITUD KM', 'PUENTES VEHICULARES UND', 'PUENTES VEHICULARES M2',
             'PUENTES PEATONALES UND', 'PUENTES PEATONALES M2', 'TUNELES UND', 'TUNELES KM',
-            'ALCANCE', 'ZONA', 'TIPO TERRENO', 'NOMBRE UF',
-            '1 - TRANSPORTE', '2.1 - INFORMACIÓN GEOGRÁFICA', '2.2 TRAZADO Y DISEÑO GEOMÉTRICO',
-            '2.3 - SEGURIDAD VIAL', '2.4 - SISTEMAS INTELIGENTES',
-            '3.1 - GEOLOGÍA', '3.2 - HIDROGEOLOGÍA', '4 - SUELOS', '5 - TALUDES',
-            '6 - PAVIMENTO', '7 - SOCAVACIÓN', '8 - ESTRUCTURAS', '9 - TÚNELES',
-            '10 - URBANISMO Y PAISAJISMO', '11 - PREDIAL', '12 - IMPACTO AMBIENTAL',
-            '13 - CANTIDADES', '14 - EVALUACIÓN SOCIOECONÓMICA',
-            '15 - OTROS - MANEJO DE REDES', '16 - DIRECCIÓN Y COORDINACIÓN'
-        ]
+            'ALCANCE', 'ZONA', 'TIPO TERRENO', 'NOMBRE UF'
+        ] + item_columns
         
         # Only include columns that exist in the dataframe
         column_order = [col for col in column_order if col in df.columns]
