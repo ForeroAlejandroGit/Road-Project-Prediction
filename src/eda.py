@@ -2,11 +2,11 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import sqlite3
-import present_value as PresentValue
-from config import Config
+from src.present_value import PresentValue
+from src.config import Config
 
 class EDA:
-    def __init__(self, ):
+    def __init__(self, filename: str = None):
         self.filename = "../data/BASE DE DATOS PRESUPUESTOS.xlsx"
     
     def get_head(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -31,14 +31,90 @@ class EDA:
         return df_uf, column_names
 
     def get_items(self, df: pd.DataFrame) -> pd.DataFrame:
+        # Detect phase from the FASE field
+        fase = str(df.iloc[3, 1]) if df.shape[0] > 3 and df.shape[1] > 1 else ""
         
-        columns_names_items = [ "1 - TRANSPORTE", "2 - TRAZADO Y DISEÑO GEOMÉTRICO", "2.1 - INFORMACIÓN GEOGRÁFICA", "2.2 TRAZADO Y DISEÑO GEOMÉTRICO", "2.3 - SEGURIDAD VIAL",
-                            "2.4 - SISTEMAS INTELIGENTES", "3 - GEOLOGÍA", "3.1 - GEOLOGÍA", "3.2 - HIDROGEOLOGÍA", "4 - SUELOS", "5 - TALUDES", "6 - PAVIMENTO",
-                            "7 - SOCAVACIÓN", "8 - ESTRUCTURAS", "9 - TÚNELES", "10 - URBANISMO Y PAISAJISMO", "11 - PREDIAL", "12 - IMPACTO AMBIENTAL",
-                            "13 - CANTIDADES", "14 - EVALUACIÓN SOCIOECONÓMICA", "15 - OTROS - MANEJO DE REDES", "16 - DIRECCIÓN Y COORDINACIÓN" ]
+        # Extract item data (starting from row 17, columns 0-1, taking only column 1 values)
+        df_items_raw = df.iloc[17:, 0:2]
+        values = df_items_raw.iloc[:, 1].to_list()
         
-        df_items = df.iloc[ 17:, 0:2 ]
-        df_items = pd.DataFrame([df_items.iloc[:,1].to_list()], columns=columns_names_items) 
+        # Define column names based on phase
+        if 'Fase I - Prefactibilidad' in fase:
+            # Fase I - Prefactibilidad columns (13 items)
+            columns_names_items = [
+                "1 - TRANSPORTE", 
+                "2 - DISEÑO GEOMÉTRICO", 
+                "3 - PREFACTIBILIDAD TÚNELES",
+                "4 - GEOLOGIA", 
+                "5 - GEOTECNIA", 
+                "6 - HIDROLOGÍA E HIDRÁULICA", 
+                "7 - AMBIENTAL Y SOCIAL",
+                "8 - PREDIAL", 
+                "9 - RIESGOS Y SOSTENIBILIDAD", 
+                "10 - EVALUACIÓN ECONÓMICA",
+                "11 - SOCIO ECONÓMICA, FINANCIERA", 
+                "12 - ESTRUCTURAS", 
+                "13 - DIRECCIÓN Y COORDINACIÓN"
+            ]
+        elif 'Fase II - Factibilidad' in fase:
+            # Fase II - Factibilidad columns (17 items including subcomponents)
+            columns_names_items = [
+                "1 - TRANSPORTE", 
+                "2 - TRAZADO Y TOPOGRAFIA",
+                "2.1 - INFORMACIÓN GEOGRÁFICA", 
+                "2.2 - TRAZADO Y DISEÑO GEOMÉTRICO",
+                "3 - GEOLOGÍA",
+                "3.1 - GEOLOGÍA", 
+                "3.2 - HIDROGEOLOGÍA",
+                "4 - TALUDES",
+                "5 - HIDROLOGÍA E HIDRÁULICA",
+                "6 - ESTRUCTURAS", 
+                "7 - TÚNELES", 
+                "8 - PAVIMENTO", 
+                "9 - PREDIAL",
+                "10 - AMBIENTAL Y SOCIAL", 
+                "11 - COSTOS Y PRESUPUESTOS",
+                "12 - SOCIOECONÓMICA", 
+                "13 - DIRECCIÓN Y COORDINACIÓN"
+            ]
+        else:
+            # Fase III - Diseños a detalle (default - 22 items)
+            columns_names_items = [
+                "1 - TRANSPORTE", 
+                "2 - TRAZADO Y DISEÑO GEOMÉTRICO", 
+                "2.1 - INFORMACIÓN GEOGRÁFICA", 
+                "2.2 TRAZADO Y DISEÑO GEOMÉTRICO", 
+                "2.3 - SEGURIDAD VIAL",
+                "2.4 - SISTEMAS INTELIGENTES", 
+                "3 - GEOLOGÍA", 
+                "3.1 - GEOLOGÍA", 
+                "3.2 - HIDROGEOLOGÍA",
+                "4 - SUELOS", 
+                "5 - TALUDES", 
+                "6 - PAVIMENTO", 
+                "7 - SOCAVACIÓN", 
+                "8 - ESTRUCTURAS",
+                "9 - TÚNELES", 
+                "10 - URBANISMO Y PAISAJISMO", 
+                "11 - PREDIAL", 
+                "12 - IMPACTO AMBIENTAL",
+                "13 - CANTIDADES", 
+                "14 - EVALUACIÓN SOCIOECONÓMICA", 
+                "15 - OTROS - MANEJO DE REDES",
+                "16 - DIRECCIÓN Y COORDINACIÓN"
+            ]
+        
+        # Ensure values list matches column count
+        if len(values) != len(columns_names_items):
+            print(f"WARNING: Fase '{fase}' has {len(values)} values but {len(columns_names_items)} columns expected")
+            # Pad or truncate to match
+            if len(values) < len(columns_names_items):
+                values.extend([0] * (len(columns_names_items) - len(values)))
+            else:
+                values = values[:len(columns_names_items)]
+        
+        df_items = pd.DataFrame([values], columns=columns_names_items)
+        
         return df_items
     
     def assemble_sheet(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -71,9 +147,6 @@ class EDA:
             for project_name in project_names:
                 df = pd.read_excel(self.filename, sheet_name=project_name, header=None, engine="openpyxl")
                 df_project.append(self.assemble_sheet(df))
-                #TEMPORAL DEBUGGING
-                if project_name == '0005':
-                    break 
 
         return pd.concat(df_project, axis=0, ignore_index=True)
     

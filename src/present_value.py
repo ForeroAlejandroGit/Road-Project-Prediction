@@ -1,6 +1,6 @@
 import requests, pandas as pd, time
 import sqlite3
-from config import Config
+from src.config import Config
 class PresentValue:
 
     def __init__(self):
