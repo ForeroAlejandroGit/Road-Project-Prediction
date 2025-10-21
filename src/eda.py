@@ -304,6 +304,12 @@ class EDA:
         
         return df
     
+    def calculate_cost_per_km(self, df: pd.DataFrame, target_columns: list[str], length_column: str = 'LONGITUD KM') -> pd.DataFrame:
+        df_cost_per_km = df.copy()
+        for col in target_columns:
+            df_cost_per_km[f'{col} per KM'] = df_cost_per_km[col] / df_cost_per_km[length_column]
+        return df_cost_per_km
+    
     def show_plots_eda(self, predictor_name: str, target_name: str, hue_name: str, df_clean: pd.DataFrame) -> None:
 
         plt.style.use('seaborn-v0_8-whitegrid')
