@@ -1,13 +1,12 @@
 from flask import Flask, render_template, request, jsonify
 from flask_cors import CORS
-from src.models import init_db, Proyecto, UnidadFuncional, Item
+from src.models import Proyecto, UnidadFuncional#, Item
 from src.config import Config
 
 app = Flask(__name__)
 app.config.from_object(Config)
 CORS(app)
 
-init_db()
 
 @app.route('/')
 def index():
@@ -65,38 +64,38 @@ def delete_unidad_funcional(uf_id):
     UnidadFuncional.delete(uf_id)
     return jsonify({'message': 'Unidad funcional eliminada'})
 
-@app.route('/api/items/<codigo>', methods=['GET'])
-def get_items(codigo):
-    items = Item.get_by_codigo(codigo)
-    if items:
-        return jsonify(items)
-    return jsonify({'error': 'Items no encontrados'}), 404
+# @app.route('/api/items/<codigo>', methods=['GET'])
+# def get_items(codigo):
+#     items = Item.get_by_codigo(codigo)
+#     if items:
+#         return jsonify(items)
+#     return jsonify({'error': 'Items no encontrados'}), 404
 
-@app.route('/api/items', methods=['POST'])
-def create_item():
-    data = request.get_json(silent=True) or {}
-    codigo = data.get('codigo')
+# @app.route('/api/items', methods=['POST'])
+# def create_item():
+#     data = request.get_json(silent=True) or {}
+#     codigo = data.get('codigo')
     
-    # Check if items already exist for this codigo
-    existing = Item.get_by_codigo(codigo)
-    if existing:
-        Item.update(codigo, data)
-        return jsonify({'message': 'Items actualizados'})
-    else:
-        item_id = Item.create(data)
-        return jsonify({'id': item_id, 'message': 'Items creados'}), 201
+#     # Check if items already exist for this codigo
+#     existing = Item.get_by_codigo(codigo)
+#     if existing:
+#         Item.update(codigo, data)
+#         return jsonify({'message': 'Items actualizados'})
+#     else:
+#         item_id = Item.create(data)
+#         return jsonify({'id': item_id, 'message': 'Items creados'}), 201
 
-@app.route('/api/items/<codigo>', methods=['PUT'])
-def update_item(codigo):
-    data = request.get_json(silent=True) or {}
-    data['codigo'] = codigo
-    Item.update(codigo, data)
-    return jsonify({'message': 'Items actualizados'})
+# @app.route('/api/items/<codigo>', methods=['PUT'])
+# def update_item(codigo):
+#     data = request.get_json(silent=True) or {}
+#     data['codigo'] = codigo
+#     Item.update(codigo, data)
+#     return jsonify({'message': 'Items actualizados'})
 
-@app.route('/api/items/<codigo>', methods=['DELETE'])
-def delete_item(codigo):
-    Item.delete(codigo)
-    return jsonify({'message': 'Items eliminados'})
+# @app.route('/api/items/<codigo>', methods=['DELETE'])
+# def delete_item(codigo):
+#     Item.delete(codigo)
+#     return jsonify({'message': 'Items eliminados'})
 
 @app.route('/api/predict', methods=['POST'])
 def predict_cost():
