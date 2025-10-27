@@ -171,11 +171,15 @@ class EDA:
         # Get longitude weight (common to all phases)
         longitude_weigth = new_row['LONGITUD KM WEIGHT']
         
+        # Calculate tunnel weight: 50% based on UND, 50% based on KM
+        # This distributes tunnel costs proportionally across functional units
+        tunnel_weight = 0.5 * new_row['TUNELES UND WEIGHT'] + 0.5 * new_row['TUNELES KM WEIGHT']
+        
         if fase == 'I':
             # Fase I - Apply longitude weight to most items
             new_row['1 - TRANSPORTE'] *= longitude_weigth
             new_row['2 - DISEÑO GEOMÉTRICO'] *= longitude_weigth
-            new_row['3 - PREFACTIBILIDAD TÚNELES'] *= longitude_weigth
+            new_row['3 - PREFACTIBILIDAD TÚNELES'] *= tunnel_weight  # Use tunnel weight for tunnel items
             new_row['4 - GEOLOGIA'] *= longitude_weigth
             new_row['5 - GEOTECNIA'] *= longitude_weigth
             new_row['6 - HIDROLOGÍA E HIDRÁULICA'] *= longitude_weigth
@@ -195,7 +199,7 @@ class EDA:
             new_row['4 - TALUDES'] *= longitude_weigth
             new_row['5 - HIDROLOGÍA E HIDRÁULICA'] *= longitude_weigth
             new_row['6 - ESTRUCTURAS'] *= longitude_weigth
-            new_row['7 - TÚNELES'] *= longitude_weigth
+            new_row['7 - TÚNELES'] *= tunnel_weight  # Use tunnel weight for tunnel items
             new_row['8 - PAVIMENTO'] *= longitude_weigth
             new_row['9 - PREDIAL'] *= longitude_weigth
             new_row['10 - AMBIENTAL Y SOCIAL'] *= longitude_weigth
@@ -217,7 +221,7 @@ class EDA:
             new_row['6 - PAVIMENTO'] *= longitude_weigth
             new_row['7 - SOCAVACIÓN'] *= longitude_weigth
             new_row['8 - ESTRUCTURAS'] *= longitude_weigth
-            new_row['9 - TÚNELES'] *= longitude_weigth
+            new_row['9 - TÚNELES'] *= tunnel_weight  # Use tunnel weight for tunnel items
             new_row['10 - URBANISMO Y PAISAJISMO'] *= longitude_weigth
             new_row['11 - PREDIAL'] *= longitude_weigth
             new_row['12 - IMPACTO AMBIENTAL'] *= longitude_weigth
@@ -226,7 +230,9 @@ class EDA:
             new_row['15 - OTROS - MANEJO DE REDES'] *= longitude_weigth
             new_row['16 - DIRECCIÓN Y COORDINACIÓN'] *= longitude_weigth
         
-        ###TODO: Add bridge, tunnel and urbanism analysis (commented for future implementation)
+        ###TODO: Add bridge and urbanism analysis (commented for future implementation)
+        # Tunnel analysis is now implemented above using 50/50 weight split
+        
         # #Bridge analysis
         # bridge_weigth = 1
         # if new_row['PUENTES VEHICULARES UND'] > 0 or new_row['PUENTES PEATONALES UND'] > 0:
