@@ -340,6 +340,67 @@ def create_scatter_plot_with_regression(df, predictor_name, target_name, hue_nam
     return fig
 
 
+def get_bridges_structures_tunnels(df_vp, target_name, exclude_codes=None, contamination=0.1):
+    """
+    Get and clean bridges, structures, and tunnels data for a specific target variable.
+    Groups data by project code and filters for projects with relevant infrastructure.
+    
+    Parameters:
+    -----------
+    df_vp : pd.DataFrame
+        Input dataframe with project data
+    target_name : str
+        Name of the target column to predict
+    exclude_codes : list, optional
+        List of project codes to exclude from analysis
+    contamination : float
+        Expected proportion of outliers for outlier detection (default: 0.1)
+    
+    Returns:
+    --------
+    tuple[pd.DataFrame, pd.DataFrame]
+        - df_filtered: Filtered dataframe before outlier removal
+        - df_clean: Cleaned dataframe after outlier removal
+    """
+    # Select relevant columns
+    df = df_vp.loc[:, 'CÓDIGO':'ALCANCE'].join(df_vp.loc[:, [target_name]])
+    
+    # Group by project code
+    bridges_structures_tunnels_cols = [
+        'PUENTES VEHICULARES UND', 
+        'PUENTES VEHICULARES M2', 
+        'PUENTES PEATONALES UND',
+        'PUENTES PEATONALES M2',
+        'TUNELES UND',
+        'TUNELES KM'
+    ]
+    
+    agg_dict = {
+        'ALCANCE': 'first',
+        target_name: 'sum'
+    }
+    # Add aggregation for all infrastructure columns
+    for col in bridges_structures_tunnels_cols:
+        agg_dict[col] = 'sum'
+    
+    df_grouped = df.groupby('CÓDIGO').agg(agg_dict).reset_index()
+    
+    # Filter: projects with bridges/structures/tunnels and positive target values
+    df_filtered = df_grouped[
+        (df_grouped[bridges_structures_tunnels_cols].sum(axis=1) > 0) & 
+        (df_grouped[target_name] > 0)
+    ]
+    
+    # Exclude specific codes if provided
+    if exclude_codes:
+        df_filtered = df_filtered[~df_filtered['CÓDIGO'].isin(exclude_codes)]
+    
+    # Remove outliers
+    df_clean = remove_outliers(df_filtered, target_name, contamination=contamination)
+    
+    return df_filtered, df_clean
+
+
 def analysis_plots(y, y_predicted, df_item_cleaned, predictor_name, target_name, 
                    hue_name, df_raw=None):
     """
