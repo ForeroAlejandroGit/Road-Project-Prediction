@@ -10,6 +10,7 @@ import pandas as pd
 from sklearn.ensemble import IsolationForest
 from sklearn.neighbors import LocalOutlierFactor
 from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
 
 
 def remove_outliers(df: pd.DataFrame, target: str, method: str = 'ensemble', 
@@ -129,4 +130,60 @@ def remove_outliers(df: pd.DataFrame, target: str, method: str = 'ensemble',
             print(f"     • {flag_name}: {flags.sum()} outliers")
     
     return df_clean
+
+
+def calculate_metrics(y_true, y_pred, model_name: str = "Model", include_rmsle: bool = False) -> dict:
+    """
+    Calculate and return comprehensive regression metrics.
+    
+    Parameters:
+    -----------
+    y_true : array-like
+        True target values
+    y_pred : array-like
+        Predicted target values
+    model_name : str
+        Name of the model for identification in results
+    include_rmsle : bool
+        If True, also calculate RMSLE (Root Mean Squared Log Error).
+        Useful for data with exponential growth patterns.
+    
+    Returns:
+    --------
+    dict
+        Dictionary containing comprehensive regression metrics:
+        - Model: Model name
+        - R²: R-squared score
+        - MAE: Mean Absolute Error
+        - RMSE: Root Mean Squared Error
+        - RMSLE: Root Mean Squared Log Error (only if include_rmsle=True)
+        - MAPE (%): Mean Absolute Percentage Error
+        - Median AE: Median Absolute Error
+        - Max Error: Maximum absolute error
+    """
+    r2 = r2_score(y_true, y_pred)
+    mae = mean_absolute_error(y_true, y_pred)
+    rmse = np.sqrt(mean_squared_error(y_true, y_pred))
+    mape = np.mean(np.abs((y_true - y_pred) / y_true)) * 100
+    
+    # Additional metrics
+    median_ae = np.median(np.abs(y_true - y_pred))
+    max_error = np.max(np.abs(y_true - y_pred))
+    
+    metrics = {
+        'Model': model_name,
+        'R²': r2,
+        'MAE': mae,
+        'RMSE': rmse,
+        'MAPE (%)': mape,
+        'Median AE': median_ae,
+        'Max Error': max_error
+    }
+    
+    # Add RMSLE if requested (useful for exponential/log-scale predictions)
+    if include_rmsle:
+        rmsle = np.sqrt(np.mean((np.log1p(y_pred) - np.log1p(y_true))**2))
+        metrics['RMSLE'] = rmsle
+    
+    return metrics
 
