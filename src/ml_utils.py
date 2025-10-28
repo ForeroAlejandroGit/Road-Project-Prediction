@@ -11,6 +11,7 @@ from sklearn.ensemble import IsolationForest
 from sklearn.neighbors import LocalOutlierFactor
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
+import plotly.graph_objects as go
 
 
 def remove_outliers(df: pd.DataFrame, target: str, method: str = 'ensemble', 
@@ -186,4 +187,309 @@ def calculate_metrics(y_true, y_pred, model_name: str = "Model", include_rmsle: 
         metrics['RMSLE'] = rmsle
     
     return metrics
+
+
+def create_scatter_plot_with_regression(df, predictor_name, target_name, hue_name='ALCANCE', 
+                                         df_raw=None, title=None):
+    """
+    Create interactive scatter plot with regression line and R² value, colored by hue.
+    Includes tooltips with project information on hover.
+    
+    Parameters:
+    -----------
+    df : pd.DataFrame
+        Data to plot
+    predictor_name : str
+        Name of predictor variable (x-axis)
+    target_name : str
+        Name of target variable (y-axis)
+    hue_name : str
+        Name of categorical variable for color coding
+    df_raw : pd.DataFrame, optional
+        Raw dataframe with project codes and names for enhanced hover information
+    title : str, optional
+        Plot title (auto-generated if None)
+        
+    Returns:
+    --------
+    plotly.graph_objects.Figure
+        Interactive Plotly figure with scatter plot and regression line
+    """
+    from scipy.stats import linregress
+    
+    # Color map for different project types
+    colors_map = {
+        'Segunda calzada': '#1f77b4',
+        'operacion y mantenimiento': '#ff7f0e', 
+        'Mejoramiento': '#2ca02c',
+        'Rehabilitación': '#d62728',
+        'Nuevo': '#9467bd',
+        'Construcción': '#8c564b',
+        'Puesta a punto': '#e377c2'
+    }
+    
+    # Create figure
+    fig = go.Figure()
+    
+    # Add scatter points colored by category
+    for category in sorted(df[hue_name].unique()):
+        mask = df[hue_name] == category
+        df_category = df[mask]
+        
+        # Create hover text with project information
+        hover_text = []
+        for idx in df_category.index:
+            hover = f"<b>{hue_name}:</b> {category}<br>"
+            
+            # Try to add project code and name from df_raw if available
+            if df_raw is not None and idx in df_raw.index:
+                if 'CÓDIGO DEL PROYECTO' in df_raw.columns:
+                    hover += f"<b>Código:</b> {df_raw.loc[idx, 'CÓDIGO DEL PROYECTO']}<br>"
+                if 'NOMBRE DEL PROYECTO' in df_raw.columns:
+                    hover += f"<b>Nombre:</b> {df_raw.loc[idx, 'NOMBRE DEL PROYECTO']}<br>"
+            
+            # Add project code from df if available
+            if 'CÓDIGO' in df.columns and idx in df.index:
+                hover += f"<b>Código:</b> {df.loc[idx, 'CÓDIGO']}<br>"
+            
+            # Add predictor and target values
+            if predictor_name in df.columns:
+                hover += f"<b>{predictor_name}:</b> {df.loc[idx, predictor_name]:.2f}<br>"
+            if target_name in df.columns:
+                hover += f"<b>{target_name}:</b> ${df.loc[idx, target_name]:,.0f}"
+            
+            hover_text.append(hover)
+        
+        fig.add_trace(go.Scatter(
+            x=df_category[predictor_name],
+            y=df_category[target_name],
+            mode='markers',
+            name=category,
+            marker=dict(
+                size=12,
+                color=colors_map.get(category, '#7f7f7f'),
+                opacity=0.8,
+                line=dict(width=1, color='DarkSlateGrey')
+            ),
+            hovertemplate='%{customdata}<extra></extra>',
+            customdata=hover_text
+        ))
+    
+    # Calculate and plot overall regression line
+    slope, intercept, r_value, p_value, _ = linregress(df[predictor_name], df[target_name])
+    x_line = np.linspace(df[predictor_name].min(), df[predictor_name].max(), 100)
+    y_line = slope * x_line + intercept
+    
+    fig.add_trace(go.Scatter(
+        x=x_line,
+        y=y_line,
+        mode='lines',
+        name=f'Overall R²={r_value**2:.3f}',
+        line=dict(color='red', width=2, dash='dash'),
+        showlegend=True,
+        hoverinfo='skip'
+    ))
+    
+    # Update layout
+    if title is None:
+        title = f'{predictor_name} vs {target_name} by {hue_name}'
+    
+    fig.update_layout(
+        title=dict(
+            text=f'<b>{title}</b>',
+            x=0.5,
+            xanchor='center',
+            font=dict(size=16, family='Arial')
+        ),
+        xaxis=dict(
+            title=dict(
+                text=f'<b>{predictor_name}</b>',
+                font=dict(size=13)
+            ),
+            showgrid=True,
+            gridcolor='lightgray',
+            gridwidth=0.5
+        ),
+        yaxis=dict(
+            title=dict(
+                text=f'<b>{target_name}</b>',
+                font=dict(size=13)
+            ),
+            showgrid=True,
+            gridcolor='lightgray',
+            gridwidth=0.5
+        ),
+        plot_bgcolor='white',
+        paper_bgcolor='white',
+        hovermode='closest',
+        legend=dict(
+            orientation="v",
+            yanchor="top",
+            y=0.99,
+            xanchor="right",
+            x=0.99,
+            bgcolor="rgba(255, 255, 255, 0.9)",
+            bordercolor="lightgray",
+            borderwidth=1
+        ),
+        width=1000,
+        height=600
+    )
+    
+    fig.show()
+    return fig
+
+
+def analysis_plots(y, y_predicted, df_item_cleaned, predictor_name, target_name, 
+                   hue_name, df_raw=None):
+    """
+    Creates beautiful executive Plotly visualizations for model analysis.
+    
+    Parameters:
+    -----------
+    y : array-like
+        Actual values
+    y_predicted : array-like
+        Predicted values
+    df_item_cleaned : pd.DataFrame
+        Cleaned dataframe with all project data
+    predictor_name : str
+        Name of the predictor column (e.g., 'LONGITUD KM', 'PUENTES VEHICULARES M2')
+    target_name : str
+        Name of the target column (e.g., '5 - TALUDES', '4 - SUELOS')
+    hue_name : str
+        Name of the hue column (e.g., 'ALCANCE')
+    df_raw : pd.DataFrame, optional
+        Raw dataframe with project codes and names for enhanced hover information
+        
+    Returns:
+    --------
+    plotly.graph_objects.Figure
+        Interactive Plotly figure showing actual vs predicted values
+    """
+    # Color map for different project types
+    colors_map = {
+        'Segunda calzada': '#1f77b4',
+        'operacion y mantenimiento': '#ff7f0e', 
+        'Mejoramiento': '#2ca02c',
+        'Rehabilitación': '#d62728',
+        'Nuevo': '#9467bd',
+        'Construcción': '#8c564b',
+        'Puesta a punto': '#e377c2'
+    }
+    
+    # Convert y and y_predicted to pandas Series if they aren't already
+    if not isinstance(y, pd.Series):
+        y = pd.Series(y, index=df_item_cleaned.index)
+    if not isinstance(y_predicted, pd.Series):
+        y_predicted = pd.Series(y_predicted, index=df_item_cleaned.index)
+    
+    # Create figure
+    fig = go.Figure()
+    
+    # Add scatter points colored by category
+    for category in sorted(df_item_cleaned[hue_name].unique()):
+        mask = df_item_cleaned[hue_name] == category
+        indices = df_item_cleaned[mask].index
+        y_actual = y[mask]
+        y_pred = y_predicted[mask]
+        
+        # Create hover text with project information
+        hover_text = []
+        for idx in indices:
+            hover = f"<b>{hue_name}:</b> {category}<br>"
+            
+            # Try to add project code and name from df_raw if available
+            if df_raw is not None and idx in df_raw.index:
+                if 'CÓDIGO DEL PROYECTO' in df_raw.columns:
+                    hover += f"<b>Código:</b> {df_raw.loc[idx, 'CÓDIGO DEL PROYECTO']}<br>"
+                if 'NOMBRE DEL PROYECTO' in df_raw.columns:
+                    hover += f"<b>Nombre:</b> {df_raw.loc[idx, 'NOMBRE DEL PROYECTO']}<br>"
+            
+            # Add project code from df_item_cleaned if available
+            if 'CÓDIGO' in df_item_cleaned.columns and idx in df_item_cleaned.index:
+                hover += f"<b>Código:</b> {df_item_cleaned.loc[idx, 'CÓDIGO']}<br>"
+            
+            # Add predictor value
+            if predictor_name in df_item_cleaned.columns:
+                hover += f"<b>{predictor_name}:</b> {df_item_cleaned.loc[idx, predictor_name]:.2f}<br>"
+            
+            # Add actual and predicted values
+            hover += f"<b>Valor Real:</b> ${y_actual.loc[idx]:,.0f}<br>"
+            hover += f"<b>Predicción:</b> ${y_pred.loc[idx]:,.0f}"
+            
+            hover_text.append(hover)
+        
+        fig.add_trace(go.Scatter(
+            x=y_actual,
+            y=y_pred,
+            mode='markers',
+            name=category,
+            marker=dict(
+                size=12,
+                color=colors_map.get(category, '#7f7f7f'),
+                opacity=0.8,
+                line=dict(width=1, color='white')
+            ),
+            hovertemplate='%{customdata}<extra></extra>',
+            customdata=hover_text
+        ))
+    
+    # Add perfect prediction line
+    min_val = min(y.min(), y_predicted.min())
+    max_val = max(y.max(), y_predicted.max())
+    fig.add_trace(go.Scatter(
+        x=[min_val, max_val],
+        y=[min_val, max_val],
+        mode='lines',
+        name='Predicción Perfecta',
+        line=dict(color='red', width=2, dash='dash'),
+        showlegend=True
+    ))
+    
+    # Update layout for executive look
+    fig.update_layout(
+        title=dict(
+            text=f'<b>Predicción vs Realidad - {target_name}</b>',
+            x=0.5,
+            xanchor='center',
+            font=dict(size=20, family='Arial Black')
+        ),
+        xaxis=dict(
+            title=dict(
+                text='<b>Valor Real ($)</b>',
+                font=dict(size=14)
+            ),
+            showgrid=True,
+            gridcolor='lightgray',
+            gridwidth=0.5
+        ),
+        yaxis=dict(
+            title=dict(
+                text='<b>Valor Predicho ($)</b>',
+                font=dict(size=14)
+            ),
+            showgrid=True,
+            gridcolor='lightgray',
+            gridwidth=0.5
+        ),
+        plot_bgcolor='white',
+        paper_bgcolor='white',
+        hovermode='closest',
+        legend=dict(
+            orientation="v",
+            yanchor="top",
+            y=0.99,
+            xanchor="left",
+            x=0.01,
+            bgcolor="rgba(255, 255, 255, 0.9)",
+            bordercolor="lightgray",
+            borderwidth=1
+        ),
+        width=900,
+        height=600
+    )
+    
+    fig.show()
+    return fig
 
