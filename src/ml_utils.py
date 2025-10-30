@@ -126,9 +126,9 @@ def remove_outliers(df: pd.DataFrame, target: str, method: str = 'ensemble',
     pct_removed = (n_outliers / len(df_nonzero)) * 100
     print(f"  → Removed {n_outliers}/{len(df_nonzero)} outliers ({pct_removed:.1f}%) using {method}")
     
-    if method == 'ensemble' and len(outlier_flags) > 1:
-        for flag_name, flags in outlier_flags.items():
-            print(f"     • {flag_name}: {flags.sum()} outliers")
+    # if method == 'ensemble' and len(outlier_flags) > 1:
+    #     for flag_name, flags in outlier_flags.items():
+    #         print(f"     • {flag_name}: {flags.sum()} outliers")
     
     return df_clean
 
