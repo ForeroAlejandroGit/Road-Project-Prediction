@@ -173,18 +173,18 @@ def calculate_metrics(y_true, y_pred, model_name: str = "Model", include_rmsle: 
     
     metrics = {
         'Model': model_name,
-        'R²': r2,
-        'MAE': mae,
-        'RMSE': rmse,
-        'MAPE (%)': mape,
-        'Median AE': median_ae,
-        'Max Error': max_error
+        'R²': round(float(r2), 3),
+        'MAE': round(float(mae), 3),
+        'RMSE': round(float(rmse), 3),
+        'MAPE (%)': round(float(mape), 3),
+        'Median AE': round(float(median_ae), 3),
+        'Max Error': round(float(max_error), 3)
     }
     
     # Add RMSLE if requested (useful for exponential/log-scale predictions)
     if include_rmsle:
         rmsle = np.sqrt(np.mean((np.log1p(y_pred) - np.log1p(y_true))**2))
-        metrics['RMSLE'] = rmsle
+        metrics['RMSLE'] = round(float(rmsle), 3)
     
     return metrics
 
@@ -554,3 +554,48 @@ def analysis_plots(y, y_predicted, df_item_cleaned, predictor_name, target_name,
     fig.show()
     return fig
 
+
+def print_prediction_metrics(results: pd.DataFrame, target_name: str) -> pd.DataFrame:
+    """
+    Print comprehensive prediction accuracy metrics from a results DataFrame.
+    
+    Parameters:
+    -----------
+    results : pd.DataFrame
+        DataFrame containing 'ACTUAL' and 'PREDICTED' columns with the true and predicted values
+    target_name : str
+        Name of the target variable being predicted (for display purposes)
+    
+    Returns:
+    --------
+    pd.DataFrame
+        Enhanced results DataFrame with additional metrics:
+        - APE (%): Absolute Percentage Error for each prediction
+        - ACCURACY (%): Accuracy percentage (100 - APE)
+        - WITHIN_20%: Boolean flag for predictions within ±20% accuracy
+    """
+    # Validate input DataFrame has required columns
+    if 'ACTUAL' not in results.columns or 'PREDICTED' not in results.columns:
+        raise ValueError("Results DataFrame must contain 'ACTUAL' and 'PREDICTED' columns")
+    
+    # Create a copy to avoid modifying the original
+    output = results.copy()
+    
+    # Calculate various accuracy metrics for each prediction
+    output['APE (%)'] = (abs(output['ACTUAL'] - output['PREDICTED']) / output['ACTUAL'].replace(0, np.nan)) * 100  # Absolute Percentage Error
+    output['ACCURACY (%)'] = 100 - output['APE (%)']  # Accuracy as percentage
+    
+    # Add quality indicators
+    output['WITHIN_20%'] = output['APE (%)'] <= 20  # Flag for acceptable predictions
+    
+    # Display summary statistics
+    print("\n" + "="*60)
+    print(f"  PREDICTION ACCURACY SUMMARY - {target_name}")
+    print("="*60)
+    print(f"  Mean Absolute Percentage Error (MAPE): {output['APE (%)'].mean():.2f}%")
+    print(f"  Median Absolute Percentage Error: {output['APE (%)'].median():.2f}%")
+    print(f"  Mean Accuracy: {output['ACCURACY (%)'].mean():.2f}%")
+    print(f"  Predictions within ±20%: {output['WITHIN_20%'].sum()} / {len(output)} ({output['WITHIN_20%'].sum()/len(output)*100:.1f}%)")
+    print("="*60 + "\n")
+    
+    return output
