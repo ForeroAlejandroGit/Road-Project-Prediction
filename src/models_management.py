@@ -88,3 +88,70 @@ class ModelsManagement:
         results[target_cant] = train_cantidades_model(self.df_vp, predictors_cant, target_cant, log_transform='none')
         
         return results
+
+    def predict_fase_III(self, codigo: str, longitud_km: float, puentes_vehiculares_und: int,
+                         puentes_vehiculares_m2: float, puentes_peatonales_und: int,
+                         puentes_peatonales_m2: float, tuneles_und: int, tuneles_km: float,
+                         alcance: str, models: dict) -> dict:
+        
+        import numpy as np
+        
+        predictions = {}
+        
+        input_data = pd.DataFrame({
+            'CÓDIGO': [codigo],
+            'LONGITUD KM': [longitud_km],
+            'PUENTES VEHICULARES UND': [puentes_vehiculares_und],
+            'PUENTES VEHICULARES M2': [puentes_vehiculares_m2],
+            'PUENTES PEATONALES UND': [puentes_peatonales_und],
+            'PUENTES PEATONALES M2': [puentes_peatonales_m2],
+            'TUNELES UND': [tuneles_und],
+            'TUNELES KM': [tuneles_km],
+            'ALCANCE': [alcance]
+        })
+        
+        input_data['LONGITUD KM LOG'] = np.log1p(input_data['LONGITUD KM'])
+        
+        basic_targets = ['1 - TRANSPORTE', '2.1 - INFORMACIÓN GEOGRÁFICA', '2.2 - TRAZADO Y DISEÑO GEOMÉTRICO',
+                        '2.3 - SEGURIDAD VIAL', '2.4 - SISTEMAS INTELIGENTES', '5 - TALUDES', '6 - PAVIMENTO',
+                        '7 - SOCAVACIÓN', '11 - PREDIAL', '12 - IMPACTO AMBIENTAL', '15 - OTROS - MANEJO DE REDES']
+        
+        for target in basic_targets:
+            model = models[target]['model']
+            predictions[target] = model.predict(input_data[['LONGITUD KM', 'LONGITUD KM LOG', 'ALCANCE']])[0]
+        
+        input_data['2.2 - TRAZADO Y DISEÑO GEOMÉTRICO'] = [predictions['2.2 - TRAZADO Y DISEÑO GEOMÉTRICO']]
+        input_data['5 - TALUDES'] = [predictions['5 - TALUDES']]
+        input_data['7 - SOCAVACIÓN'] = [predictions['7 - SOCAVACIÓN']]
+        
+        input_data['2.2 - TRAZADO Y DISEÑO GEOMÉTRICO LOG'] = np.log1p(input_data['2.2 - TRAZADO Y DISEÑO GEOMÉTRICO'])
+        input_data['5 - TALUDES LOG'] = np.log1p(input_data['5 - TALUDES'])
+        input_data['7 - SOCAVACIÓN LOG'] = np.log1p(input_data['7 - SOCAVACIÓN'])
+        
+        model_coord = models['16 - DIRECCIÓN Y COORDINACIÓN']['model']
+        coord_features = ['2.2 - TRAZADO Y DISEÑO GEOMÉTRICO', '5 - TALUDES', '7 - SOCAVACIÓN',
+                          '2.2 - TRAZADO Y DISEÑO GEOMÉTRICO LOG', '5 - TALUDES LOG', '7 - SOCAVACIÓN LOG']
+        predictions['16 - DIRECCIÓN Y COORDINACIÓN'] = model_coord.predict(input_data[coord_features])[0]
+        
+        model_geo = models['3 - GEOLOGÍA']['model']
+        predictions['3 - GEOLOGÍA'] = model_geo.predict(input_data[['2.2 - TRAZADO Y DISEÑO GEOMÉTRICO', '5 - TALUDES', '7 - SOCAVACIÓN']])[0]
+        
+        model_suelos = models['4 - SUELOS']['model']
+        predictions['4 - SUELOS'] = model_suelos.predict(input_data[['PUENTES VEHICULARES M2']])[0]
+        
+        model_estructuras = models['8 - ESTRUCTURAS']['model']
+        predictions['8 - ESTRUCTURAS'] = model_estructuras.predict(input_data[['PUENTES VEHICULARES UND']])[0]
+        
+        input_data['TUNELES UND_LOG'] = np.log1p(input_data['TUNELES UND'])
+        input_data['TUNELES KM_LOG'] = np.log1p(input_data['TUNELES KM'])
+        
+        model_tuneles = models['9 - TÚNELES']['model']
+        predictions['9 - TÚNELES'] = model_tuneles.predict(input_data[['TUNELES UND', 'TUNELES KM', 'TUNELES UND_LOG', 'TUNELES KM_LOG']])[0]
+        
+        model_pais = models['10 - URBANISMO Y PAISAJISMO']['model']
+        predictions['10 - URBANISMO Y PAISAJISMO'] = model_pais.predict(input_data[['PUENTES PEATONALES UND']])[0]
+        
+        model_cant = models['13 - CANTIDADES']['model']
+        predictions['13 - CANTIDADES'] = model_cant.predict(input_data[['PUENTES VEHICULARES UND', 'PUENTES VEHICULARES M2', 'PUENTES PEATONALES UND']])[0]
+        
+        return predictions
