@@ -54,9 +54,10 @@ def train_geotecnia_model(df: pd.DataFrame, features: list[str], target: str = '
     
     # Calculate metrics
     metrics = calculate_metrics(y, y_pred, model_name="Linear Regression (Log y)")
+    print(metrics)
     
     # Train final model on all data
     trained_model.fit(X, y)
     
-    return {'X': X, 'y': y, 'y_predicted': y_pred,'trained_model': trained_model}
+    return {'X': X, 'y': y, 'y_predicted': y_pred, 'model': trained_model, 'metrics': metrics}
 

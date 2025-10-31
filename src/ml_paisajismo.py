@@ -47,5 +47,5 @@ def train_paisajismo_model(df: pd.DataFrame, features: list[str], target: str = 
     metrics = calculate_metrics(y, y_pred, model_name="Linear Regression")
     print(metrics)
     
-    return {'X': X, 'y': y, 'y_predicted': y_pred, 'trained_model': trained_model}
+    return {'X': X, 'y': y, 'y_predicted': y_pred, 'model': trained_model, 'metrics': metrics}
 

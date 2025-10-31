@@ -61,4 +61,4 @@ def train_brindges_structures_model(df_vp: pd.DataFrame, target_name: str, predi
     # Fit final model on all data
     model.fit(X, y)
     
-    return {'X': X, 'y': y, 'y_predicted': y_pred,'trained_model': model}
+    return {'X': X, 'y': y, 'y_predicted': y_pred,'model': model, 'metrics': metrics}

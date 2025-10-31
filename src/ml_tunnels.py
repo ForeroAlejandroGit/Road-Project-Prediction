@@ -86,5 +86,5 @@ def train_tunnel_model(df_vp: pd.DataFrame, predictors: list[str], target: str) 
     
     print(f"\nR² = {metrics['R²']:.4f} | MAPE = {metrics['MAPE (%)']:.2f}%")
     
-    return {'X': X_real, 'y': y_real, 'y_predicted': y_pred, 'trained_model': model}
+    return {'X': X_real, 'y': y_real, 'y_predicted': y_pred, 'model': model, 'metrics': metrics}
     

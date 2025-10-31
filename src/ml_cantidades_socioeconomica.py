@@ -66,5 +66,5 @@ def train_cantidades_model(df_vp: pd.DataFrame, predictors: list[str], target: s
     metrics = calculate_metrics(y, y_pred, model_name='Ridge')
     print(metrics)
     
-    return X, y, y_pred, model
+    return {'X': X, 'y': y, 'y_predicted': y_pred, 'trained_model': model}
 
