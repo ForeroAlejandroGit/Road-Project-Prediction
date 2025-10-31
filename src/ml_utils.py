@@ -7,6 +7,17 @@ for data preprocessing, outlier detection, and model evaluation.
 
 import numpy as np
 import pandas as pd
+
+from sklearn.linear_model import LinearRegression, BayesianRidge, Ridge, ElasticNet
+from sklearn.svm import SVR
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import RBF, ConstantKernel as C
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import Pipeline
+from sklearn.model_selection import LeaveOneOut, GridSearchCV
+from sklearn.metrics import r2_score
+import warnings
+
 from sklearn.ensemble import IsolationForest
 from sklearn.neighbors import LocalOutlierFactor
 from sklearn.preprocessing import StandardScaler
@@ -187,6 +198,114 @@ def calculate_metrics(y_true, y_pred, model_name: str = "Model", include_rmsle: 
         metrics['RMSLE'] = round(float(rmsle), 3)
     
     return metrics
+
+def train_multiple_models(df_vp: pd.DataFrame, predictors: list[str], target: str, log_transform: str = 'none') -> pd.DataFrame:
+    
+    df_clean = remove_outliers(df_vp, target, method='ensemble', contamination=0.1)
+    
+    X = df_clean[predictors].values
+    y = df_clean[target].values
+    
+    if log_transform in ['input', 'both']:
+        X = np.log1p(X)
+    
+    if log_transform in ['output', 'both']:
+        y_train = np.log1p(y)
+    else:
+        y_train = y
+    
+    warnings.filterwarnings('ignore', category=UserWarning)
+    
+    model_configs = {
+        'Bayesian Ridge': {
+            'model': BayesianRidge(),
+            'params': {
+                'model__alpha_1': [1e-6, 1e-5, 1e-4],
+                'model__alpha_2': [1e-6, 1e-5, 1e-4],
+                'model__lambda_1': [1e-6, 1e-5, 1e-4],
+                'model__lambda_2': [1e-6, 1e-5, 1e-4]
+            }
+        },
+        'Ridge': {
+            'model': Ridge(),
+            'params': {
+                'model__alpha': [0.01, 0.1, 1.0, 10.0, 100.0]
+            }
+        },
+        'ElasticNet': {
+            'model': ElasticNet(max_iter=10000),
+            'params': {
+                'model__alpha': [0.01, 0.1, 1.0, 10.0],
+                'model__l1_ratio': [0.1, 0.3, 0.5, 0.7, 0.9]
+            }
+        },
+        'SVR': {
+            'model': SVR(kernel='rbf'),
+            'params': {
+                'model__C': [0.1, 1.0, 10.0, 100.0],
+                'model__epsilon': [0.01, 0.1, 0.5],
+                'model__gamma': ['scale', 'auto']
+            }
+        },
+        'Gaussian Process': {
+            'model': GaussianProcessRegressor(
+                kernel=C(1.0, (1e-3, 1e6)) * RBF(1.0, (1e-6, 1e3)),
+                random_state=42,
+                n_restarts_optimizer=5
+            ),
+            'params': {}
+        }
+    }
+    
+    loo = LeaveOneOut()
+    all_results = []
+    
+    for name, config in model_configs.items():
+        pipeline = Pipeline([
+            ('scaler', StandardScaler()),
+            ('model', config['model'])
+        ])
+        
+        if config['params']:
+            grid_search = GridSearchCV(
+                pipeline, 
+                config['params'], 
+                cv=min(3, len(y)),
+                scoring='neg_mean_squared_error',
+                n_jobs=-1
+            )
+            grid_search.fit(X, y_train)
+            best_pipeline = grid_search.best_estimator_
+        else:
+            best_pipeline = pipeline
+        
+        y_pred_loo = np.zeros(len(y_train))
+        
+        for train_idx, test_idx in loo.split(X):
+            X_train, X_test = X[train_idx], X[test_idx]
+            y_tr, y_te = y_train[train_idx], y_train[test_idx]
+            best_pipeline.fit(X_train, y_tr)
+            y_pred_loo[test_idx] = best_pipeline.predict(X_test)
+        
+        if log_transform in ['output', 'both']:
+            y_pred_original = np.expm1(y_pred_loo)
+        else:
+            y_pred_original = y_pred_loo
+        
+        metrics = calculate_metrics(y, y_pred_original, model_name=name)
+        all_results.append(metrics)
+    
+    results_df = pd.DataFrame(all_results).sort_values('R²', ascending=False)
+    
+    print(f"\n{'='*80}")
+    print(f"RESULTS - {target}")
+    print(f"Predictors: {' + '.join(predictors)}")
+    print(f"Log Transform: {log_transform}")
+    print(f"{'='*80}\n")
+    print(results_df.to_string(index=False))
+    print(f"\n{'='*80}\n")
+    
+    return results_df
 
 
 def create_scatter_plot_with_regression(df, predictor_name, target_name, hue_name='ALCANCE', 
