@@ -199,9 +199,43 @@ def calculate_metrics(y_true, y_pred, model_name: str = "Model", include_rmsle: 
     
     return metrics
 
-def train_multiple_models(df_vp: pd.DataFrame, predictors: list[str], target: str, log_transform: str = 'none') -> pd.DataFrame:
+def train_multiple_models(df_vp: pd.DataFrame, predictors: list[str], target: str, log_transform: str = 'none', 
+                          apply_outlier_removal: bool = True) -> tuple[np.ndarray, np.ndarray, np.ndarray, Pipeline, dict]:
+    """
+    Train multiple regression models and return the best one based on R² and MAPE.
     
-    df_clean = remove_outliers(df_vp, target, method='ensemble', contamination=0.1)
+    Parameters:
+    -----------
+    df_vp : pd.DataFrame
+        Input dataframe
+    predictors : list[str]
+        List of predictor column names
+    target : str
+        Target column name
+    log_transform : str
+        Type of log transformation: 'none', 'input', 'output', or 'both'
+    apply_outlier_removal : bool
+        Whether to apply outlier removal (default: True)
+    
+    Returns:
+    --------
+    tuple containing:
+        - X : np.ndarray
+            Feature matrix (transformed if log_transform='input' or 'both')
+        - y : np.ndarray
+            Target values (original scale)
+        - y_predicted : np.ndarray
+            Predicted values from best model (original scale)
+        - best_model : Pipeline
+            Best trained model pipeline
+        - metrics : dict
+            Performance metrics for the best model
+    """
+    
+    if apply_outlier_removal:
+        df_clean = remove_outliers(df_vp, target, method='ensemble', contamination=0.1)
+    else:
+        df_clean = df_vp
     
     X = df_clean[predictors].values
     y = df_clean[target].values
@@ -259,6 +293,8 @@ def train_multiple_models(df_vp: pd.DataFrame, predictors: list[str], target: st
     
     loo = LeaveOneOut()
     all_results = []
+    all_models = {}
+    all_predictions = {}
     
     for name, config in model_configs.items():
         pipeline = Pipeline([
@@ -292,6 +328,10 @@ def train_multiple_models(df_vp: pd.DataFrame, predictors: list[str], target: st
         else:
             y_pred_original = y_pred_loo
         
+        # Store model and predictions
+        all_models[name] = best_pipeline
+        all_predictions[name] = y_pred_original
+        
         metrics = calculate_metrics(y, y_pred_original, model_name=name)
         all_results.append(metrics)
     
@@ -305,7 +345,20 @@ def train_multiple_models(df_vp: pd.DataFrame, predictors: list[str], target: st
     print(results_df.to_string(index=False))
     print(f"\n{'='*80}\n")
     
-    return results_df
+    # Select best model based on R² (primary) and MAPE (secondary)
+    # Sort by R² descending, then MAPE ascending
+    results_df_sorted = results_df.sort_values(by=['R²', 'MAPE (%)'], ascending=[False, True])
+    best_model_name = results_df_sorted.iloc[0]['Model']
+    
+    # Get best model, predictions, and metrics
+    best_model = all_models[best_model_name]
+    y_predicted = all_predictions[best_model_name]
+    best_metrics = results_df_sorted.iloc[0].to_dict()
+    
+    print(f"✓ Best Model Selected: {best_model_name}")
+    print(f"  R² = {best_metrics['R²']:.3f}, MAPE = {best_metrics['MAPE (%)']:.2f}%\n")
+    
+    return X, y, y_predicted, best_model, best_metrics
 
 
 def create_scatter_plot_with_regression(df: pd.DataFrame, predictor_name: str, target_name: str, hue_name: str = 'ALCANCE', 
@@ -670,6 +723,86 @@ def predicted_plot(y: np.array, y_predicted: np.array, df_item_cleaned: pd.DataF
     )
     
     return fig
+
+
+def train_models_by_alcance_and_transform(df_vp: pd.DataFrame, predictors: list[str], target: str, 
+                                       hue_name: str = 'ALCANCE', min_samples: int = 3) -> dict:
+    """
+    Train models for each hue category, testing all log transformations and returning THE best model.
+    
+    Parameters:
+    -----------
+    df_vp : pd.DataFrame
+        Input dataframe
+    predictors : list[str]
+        List of predictor column names
+    target : str
+        Target column name
+    hue_name : str
+        Column name to group by (default: 'ALCANCE')
+    min_samples : int
+        Minimum samples required per category (default: 5)
+    
+    Returns:
+    --------
+    dict
+        {hue_value: {'X', 'y', 'y_predicted', 'model', 'metrics', 'log_transform', 'n_samples'}}
+        Returns None for categories with insufficient data
+    """
+    results = {}
+    log_transforms = ['none', 'input', 'output', 'both']
+    df = df_vp[df_vp[target] > 0]
+    
+    for hue_value in df[hue_name].unique():
+        df_hue = df[df[hue_name] == hue_value]
+        
+        # Check columns exist
+        required_cols = predictors + [target]
+        if not all(col in df_hue.columns for col in required_cols):
+            continue
+        
+        # Filter valid data
+        df_hue = df_hue[required_cols].dropna()
+        
+        if len(df_hue) < min_samples:
+            print(f"\n⚠️  {hue_value}: Insufficient data ({len(df_hue)} samples) - Skipped")
+            results[hue_value] = None
+            continue
+        
+        best_result = None
+        best_score = -float('inf')
+        
+        for log_transform in log_transforms:
+            print(f"\n{'='*80}")
+            print(f"Training: {hue_value} | Log Transform: {log_transform}")
+            print(f"{'='*80}")
+            
+            try:
+                X, y, y_predicted, model, metrics = train_multiple_models(
+                    df_hue, predictors, target, log_transform=log_transform, apply_outlier_removal=False
+                )
+                
+                # Score: prioritize R² (primary), penalize MAPE (secondary)
+                score = metrics['R²'] - (metrics['MAPE (%)'] / 1000)
+                
+                if score > best_score:
+                    best_score = score
+                    best_result = {
+                        'X': X, 'y': y, 'y_predicted': y_predicted, 
+                        'model': model, 'metrics': metrics, 
+                        'log_transform': log_transform, 'n_samples': len(y)
+                    }
+                    
+            except Exception as e:
+                print(f"✗ Error: {str(e)}")
+        
+        results[hue_value] = best_result
+        
+        if best_result:
+            print(f"\n✓ Best for {hue_value}: {best_result['log_transform']} | "
+                  f"R²={best_result['metrics']['R²']:.3f}, MAPE={best_result['metrics']['MAPE (%)']:.2f}%\n")
+    
+    return results
 
 
 def print_prediction_metrics(results: pd.DataFrame, target_name: str) -> pd.DataFrame:
