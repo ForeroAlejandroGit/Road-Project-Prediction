@@ -308,8 +308,8 @@ def train_multiple_models(df_vp: pd.DataFrame, predictors: list[str], target: st
     return results_df
 
 
-def create_scatter_plot_with_regression(df, predictor_name, target_name, hue_name='ALCANCE', 
-                                         df_raw=None, title=None):
+def create_scatter_plot_with_regression(df: pd.DataFrame, predictor_name: str, target_name: str, hue_name: str = 'ALCANCE', 
+                                         df_raw: pd.DataFrame = None, title: str = None) -> go.Figure:
     """
     Create interactive scatter plot with regression line and R² value, colored by hue.
     Includes tooltips with project information on hover.
@@ -455,7 +455,6 @@ def create_scatter_plot_with_regression(df, predictor_name, target_name, hue_nam
         height=600
     )
     
-    fig.show()
     return fig
 
 
@@ -520,8 +519,8 @@ def get_bridges_structures_tunnels(df_vp, target_name, exclude_codes=None, conta
     return df_filtered, df_clean
 
 
-def analysis_plots(y, y_predicted, df_item_cleaned, predictor_name, target_name, 
-                   hue_name, df_raw=None):
+def predicted_plot(y: np.array, y_predicted: np.array, df_item_cleaned: pd.DataFrame, 
+                   predictor_name: str, target_name: str, hue_name: str, df_raw: pd.DataFrame = None) -> go.Figure:
     """
     Creates beautiful executive Plotly visualizations for model analysis.
     
@@ -581,8 +580,8 @@ def analysis_plots(y, y_predicted, df_item_cleaned, predictor_name, target_name,
             
             # Try to add project code and name from df_raw if available
             if df_raw is not None and idx in df_raw.index:
-                if 'CÓDIGO DEL PROYECTO' in df_raw.columns:
-                    hover += f"<b>Código:</b> {df_raw.loc[idx, 'CÓDIGO DEL PROYECTO']}<br>"
+                if 'CÓDIGO' in df_raw.columns:
+                    hover += f"<b>Código:</b> {df_raw.loc[idx, 'CÓDIGO']}<br>"
                 if 'NOMBRE DEL PROYECTO' in df_raw.columns:
                     hover += f"<b>Nombre:</b> {df_raw.loc[idx, 'NOMBRE DEL PROYECTO']}<br>"
             
@@ -670,7 +669,6 @@ def analysis_plots(y, y_predicted, df_item_cleaned, predictor_name, target_name,
         height=600
     )
     
-    fig.show()
     return fig
 
 
