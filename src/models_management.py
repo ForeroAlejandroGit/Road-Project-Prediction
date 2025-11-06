@@ -175,45 +175,44 @@ class ModelsManagement:
                          '2.2 - TRAZADO Y DISEÑO GEOMÉTRICO LOG', '5 - TALUDES LOG', '7 - SOCAVACIÓN LOG']
             predictions['16 - DIRECCIÓN Y COORDINACIÓN'] = model_coord.predict(input_data[coord_cols])[0]
         
-        # # Geology model (also uses train_and_calculate_metrics format)
-        # if '3 - GEOLOGÍA' in models:
-        #     model_geo = models['3 - GEOLOGÍA']['model']
-        #     geo_cols = ['2.2 - TRAZADO Y DISEÑO GEOMÉTRICO', '5 - TALUDES', '7 - SOCAVACIÓN',
-        #                '2.2 - TRAZADO Y DISEÑO GEOMÉTRICO LOG', '5 - TALUDES LOG', '7 - SOCAVACIÓN LOG']
-        #     predictions['3 - GEOLOGÍA'] = model_geo.predict(input_data[geo_cols])[0]
+        # Geology model (also uses train_and_calculate_metrics format)
+        if '3 - GEOLOGÍA' in models:
+            model_geo = models['3 - GEOLOGÍA']['model']
+            geo_cols = ['2.2 - TRAZADO Y DISEÑO GEOMÉTRICO', '5 - TALUDES', '7 - SOCAVACIÓN']
+            predictions['3 - GEOLOGÍA'] = model_geo.predict(input_data[geo_cols])[0]
         
-        # # Suelos model (simple predictor, no LOG columns needed in input)
-        # if '4 - SUELOS' in models:
-        #     model_suelos = models['4 - SUELOS']['model']
-        #     predictions['4 - SUELOS'] = model_suelos.predict(np.array([[puentes_vehiculares_m2]]))[0]
+        # Suelos model (simple predictor, no LOG columns needed in input)
+        if '4 - SUELOS' in models:
+            model_suelos = models['4 - SUELOS']['model']
+            predictions['4 - SUELOS'] = model_suelos.predict(np.array([[puentes_vehiculares_m2]]))[0]
         
-        # # Estructuras model (simple predictor, no LOG columns needed in input)
-        # if '8 - ESTRUCTURAS' in models:
-        #     model_estructuras = models['8 - ESTRUCTURAS']['model']
-        #     predictions['8 - ESTRUCTURAS'] = model_estructuras.predict(np.array([[puentes_vehiculares_und]]))[0]
+        # Estructuras model (simple predictor, no LOG columns needed in input)
+        if '8 - ESTRUCTURAS' in models:
+            model_estructuras = models['8 - ESTRUCTURAS']['model']
+            predictions['8 - ESTRUCTURAS'] = model_estructuras.predict(np.array([[puentes_vehiculares_und]]))[0]
         
-        # # Tunnels model (expects 2 predictors + their LOG versions)
-        # if '9 - TÚNELES' in models and (tuneles_und > 0 or tuneles_km > 0):
-        #     model_tuneles = models['9 - TÚNELES']['model']
-        #     X_tuneles = pd.DataFrame({
-        #         'TUNELES UND': [tuneles_und],
-        #         'TUNELES KM': [tuneles_km],
-        #         'TUNELES UND_LOG': [np.log1p(tuneles_und)],
-        #         'TUNELES KM_LOG': [np.log1p(tuneles_km)]
-        #     })
-        #     predictions['9 - TÚNELES'] = model_tuneles.predict(X_tuneles)[0]
-        # else:
-        #     predictions['9 - TÚNELES'] = None
+        # Tunnels model (expects 2 predictors + their LOG versions)
+        if '9 - TÚNELES' in models and (tuneles_und > 0 or tuneles_km > 0):
+            model_tuneles = models['9 - TÚNELES']['model']
+            X_tuneles = pd.DataFrame({
+                'TUNELES UND': [tuneles_und],
+                'TUNELES KM': [tuneles_km],
+                'TUNELES UND_LOG': [np.log1p(tuneles_und)],
+                'TUNELES KM_LOG': [np.log1p(tuneles_km)]
+            })
+            predictions['9 - TÚNELES'] = model_tuneles.predict(X_tuneles)[0]
+        else:
+            predictions['9 - TÚNELES'] = None
         
-        # # Paisajismo model (simple predictor, no LOG columns needed in input)
-        # if '10 - URBANISMO Y PAISAJISMO' in models:
-        #     model_pais = models['10 - URBANISMO Y PAISAJISMO']['model']
-        #     predictions['10 - URBANISMO Y PAISAJISMO'] = model_pais.predict(np.array([[puentes_peatonales_und]]))[0]
+        # Paisajismo model (simple predictor, no LOG columns needed in input)
+        if '10 - URBANISMO Y PAISAJISMO' in models:
+            model_pais = models['10 - URBANISMO Y PAISAJISMO']['model']
+            predictions['10 - URBANISMO Y PAISAJISMO'] = model_pais.predict(np.array([[puentes_peatonales_und]]))[0]
         
-        # # Cantidades model (multiple predictors, log_transform='none' so no LOG transform needed)
-        # if '13 - CANTIDADES' in models:
-        #     model_cant = models['13 - CANTIDADES']['model']
-        #     X_cant = np.array([[puentes_vehiculares_und, puentes_vehiculares_m2, puentes_peatonales_und]])
-        #     predictions['13 - CANTIDADES'] = model_cant.predict(X_cant)[0]
+        # Cantidades model (multiple predictors, log_transform='none' so no LOG transform needed)
+        if '13 - CANTIDADES' in models:
+            model_cant = models['13 - CANTIDADES']['model']
+            X_cant = np.array([[puentes_vehiculares_und, puentes_vehiculares_m2, puentes_peatonales_und]])
+            predictions['13 - CANTIDADES'] = model_cant.predict(X_cant)[0]
         
         return predictions
