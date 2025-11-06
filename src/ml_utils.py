@@ -766,6 +766,9 @@ def train_models_by_alcance_and_transform(df_vp: pd.DataFrame, predictors: list[
         # Filter valid data
         df_hue = df_hue[required_cols].dropna()
         
+        if len(df_hue) > 10:
+            df_hue = remove_outliers(df_hue, target)
+        
         if len(df_hue) < min_samples:
             print(f"\n⚠️  {hue_value}: Insufficient data ({len(df_hue)} samples) - Skipped")
             results[hue_value] = None
@@ -784,8 +787,7 @@ def train_models_by_alcance_and_transform(df_vp: pd.DataFrame, predictors: list[
                     df_hue, predictors, target, log_transform=log_transform, apply_outlier_removal=False
                 )
                 
-                # Score: prioritize R² (primary), penalize MAPE (secondary)
-                score = metrics['R²'] - (metrics['MAPE (%)'] / 1000)
+                score = 0.35 * metrics['R²'] - 0.65 * (metrics['MAPE (%)'] / 100)
                 
                 if score > best_score:
                     best_score = score
