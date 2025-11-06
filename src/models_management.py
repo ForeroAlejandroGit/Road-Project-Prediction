@@ -58,7 +58,8 @@ class ModelsManagement:
         # Iterate through targets and train models for each one
         results = {}
         for target in targets:
-            results[target] = ml_utils.train_models_by_alcance_and_transform(self.df_vp, predictors, target, hue_name, min_samples=3)
+            linear_depedent_results = ml_utils.train_models_by_alcance_and_transform(self.df_vp, predictors, target, hue_name, min_samples=3)
+            results[target] = ml_utils.consolidate_results_by_alcance(linear_depedent_results)
         
         # Train coordination model (uses other targets as predictors)
         df = self.df_vp[['LONGITUD KM', 'ALCANCE']].join(self.df_vp.loc[:, '1 - TRANSPORTE':])

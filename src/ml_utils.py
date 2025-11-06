@@ -851,3 +851,62 @@ def print_prediction_metrics(results: pd.DataFrame, target_name: str) -> pd.Data
     print("="*60 + "\n")
     
     return output
+
+def consolidate_results_by_alcance(results_target):
+    # Lists to collect data
+    data_list = []
+    metrics_list = []
+    
+    # Iterate through each alcance type
+    for alcance_type, result in results_target.items():
+        # Skip if result is None (insufficient data)
+        if result is None:
+            continue
+        
+        # Extract X, y, y_predicted
+        X = result['X']
+        y = result['y']
+        y_predicted = result['y_predicted']
+        metrics = result['metrics']
+        
+        # Create dataframe for this alcance type
+        # Handle X as DataFrame or array
+        if isinstance(X, pd.DataFrame):
+            longitud_km = X.iloc[:, 0].values  # First column is LONGITUD KM
+        else:
+            longitud_km = X.flatten()
+        
+        # Create temporary dataframe
+        temp_df = pd.DataFrame({
+            'LONGITUD KM': longitud_km,
+            'ALCANCE': alcance_type,
+            'y': y,
+            'y_predicted': y_predicted
+        })
+        data_list.append(temp_df)
+        
+        # Create metrics dataframe for this alcance type
+        metrics_df = pd.DataFrame([metrics])
+        metrics_df.insert(0, 'ALCANCE', alcance_type)
+        # Add log_transform and n_samples if available
+        if 'log_transform' in result:
+            metrics_df['log_transform'] = result['log_transform']
+        if 'n_samples' in result:
+            metrics_df['n_samples'] = result['n_samples']
+        metrics_list.append(metrics_df)
+    
+    # Concatenate all data
+    if len(data_list) > 0:
+        consolidated_data = pd.concat(data_list, ignore_index=True)
+    else:
+        consolidated_data = pd.DataFrame(columns=['LONGITUD KM', 'ALCANCE', 'y', 'y_predicted'])
+    
+    # Concatenate all metrics
+    if len(metrics_list) > 0:
+        consolidated_metrics = pd.concat(metrics_list, ignore_index=True)
+    else:
+        consolidated_metrics = pd.DataFrame()
+    
+    return {'X': consolidated_data[['LONGITUD KM', 'ALCANCE']], 'y': consolidated_data['y'], 
+            'y_predicted': consolidated_data['y_predicted'], 'metrics': consolidated_metrics
+    }
