@@ -12,17 +12,20 @@ from sklearn.model_selection import cross_val_predict
 from src.config import Config
 import src.eda as eda
 import src.present_value as present_value
-from src.ml_utils import remove_outliers, calculate_metrics, analysis_plots
+from src.ml_utils import remove_outliers, calculate_metrics
 
-def train_model(df_clean: pd.DataFrame, predictor_name: list[str], target_name: str, 
+def train_direction_model(df: pd.DataFrame, predictor_name: list[str], target_name: str, 
                 hue_name: str = None) -> tuple[pd.DataFrame, pd.Series, pd.Series, TransformedTargetRegressor, dict]:
     cols = predictor_name + ([hue_name] if hue_name else [])
-    X = df_clean[cols].copy()
+    
+    df = df[df[target_name] > 0]
+    
+    X = df[cols].copy()
     
     for pred in predictor_name:
         X[pred + ' LOG'] = np.log1p(X[pred])
     
-    y = df_clean[target_name].astype(float)
+    y = df[target_name].astype(float)
     
     num_cols = predictor_name + [pred + ' LOG' for pred in predictor_name]
     transformers = [('num', StandardScaler(), num_cols)]
@@ -50,19 +53,11 @@ def train_model(df_clean: pd.DataFrame, predictor_name: list[str], target_name: 
     metrics = calculate_metrics(y, y_oof, target_name, include_rmsle=True)
     print({'R2': metrics['R²'], 'MAE': metrics['MAE'], 'RMSLE': metrics['RMSLE'], 'MAPE%': metrics['MAPE (%)']})
     
-    return X, y, y_oof, gs.best_estimator_, metrics
-
-
-def train_and_calculate_metrics(df: pd.DataFrame, target_columns: list[str], predictor_name: list[str], hue_name: str = None) -> dict:
-    results = {}
+    # Create return X with original df columns
+    X_return = X.copy()
+    for col in ['LONGITUD KM', 'ALCANCE']:
+        if col in df.columns and col not in X_return.columns:
+            X_return[col] = df[col]
     
-    for target_name in target_columns:
-        cols = predictor_name + ([hue_name] if hue_name else []) + [target_name]
-        df_item = df.loc[:, cols]
-        print(target_name)
-        df_item_cleaned = remove_outliers(df_item, target_name) 
-        X, y, y_predicted, model, metrics = train_model(df_item_cleaned, predictor_name, target_name, hue_name)
-        
-        results[target_name] = { 'X': X, 'y': y, 'y_predicted': y_predicted, 'model': model, 'metrics': metrics}
-        
-    return results 
+    return {'X': X_return, 'y': y, 'y_predicted': y_oof, 'model': gs.best_estimator_, 'metrics': metrics}
+

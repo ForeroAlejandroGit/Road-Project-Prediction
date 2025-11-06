@@ -12,12 +12,14 @@ def prepare_paisajismo_data(df_vp: pd.DataFrame) -> pd.DataFrame:
 
     df = df_vp[df_vp['10 - URBANISMO Y PAISAJISMO'] > 0][['CÓDIGO', 'LONGITUD KM', 'PUENTES PEATONALES UND', '10 - URBANISMO Y PAISAJISMO']]
     df = df.groupby('CÓDIGO').agg({'PUENTES PEATONALES UND': 'sum', '10 - URBANISMO Y PAISAJISMO': 'sum', 'LONGITUD KM': 'sum'}).reset_index()
-    df = df[df['PUENTES PEATONALES UND'] != 0]
+    df = df[df['PUENTES PEATONALES UND'] > 0]
     
     return df
 
 
 def train_paisajismo_model(df: pd.DataFrame, features: list[str], target: str = '10 - URBANISMO Y PAISAJISMO') -> dict:
+    
+    df = df[df[target] > 0]
     
     # Remove outliers
     df_clean = remove_outliers(df[features + [target]], target=target)

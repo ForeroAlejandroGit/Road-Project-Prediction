@@ -1,5 +1,4 @@
-from _typeshed import NoneType
-from src.ml_linear_dependency import train_and_calculate_metrics
+from src.ml_direction import train_direction_model
 from src.ml_geotecnia import train_geotecnia_model, prepare_geotecnia_data
 from src.ml_bridges_structures import train_brindges_structures_model
 from src.ml_tunnels import train_tunnel_model
@@ -44,8 +43,9 @@ class ModelsManagement:
                 '11 - COSTOS Y PRESUPUESTOS', '12 - SOCIOECONÓMICA', '13 - DIRECCIÓN Y COORDINACIÓN']
         
         df = self.df_vp[['LONGITUD KM', 'ALCANCE']].join(self.df_vp.loc[:, '1 - TRANSPORTE':])
-        results = train_and_calculate_metrics(df, targets, predictors, hue_name)
-        return results
+        # results = train_and_calculate_metrics(df, targets, predictors, hue_name)
+        
+        return Exception('Not implemented')
 
     def train_models_fase_III(self) -> dict:
         predictors = ['LONGITUD KM']
@@ -63,8 +63,8 @@ class ModelsManagement:
         # Train coordination model (uses other targets as predictors)
         df = self.df_vp[['LONGITUD KM', 'ALCANCE']].join(self.df_vp.loc[:, '1 - TRANSPORTE':])
         predictors_coord = ["2.2 - TRAZADO Y DISEÑO GEOMÉTRICO", "5 - TALUDES", "7 - SOCAVACIÓN"]
-        targets_coord = ['16 - DIRECCIÓN Y COORDINACIÓN']
-        results['16 - DIRECCIÓN Y COORDINACIÓN'] = train_and_calculate_metrics(df, targets_coord, predictors_coord)['16 - DIRECCIÓN Y COORDINACIÓN']
+        target_coord = '16 - DIRECCIÓN Y COORDINACIÓN'
+        results['16 - DIRECCIÓN Y COORDINACIÓN'] = train_direction_model(df, predictors_coord, target_coord)
         
         df_geo = prepare_geotecnia_data(self.df_vp)
         predictors_geo = ["2.2 - TRAZADO Y DISEÑO GEOMÉTRICO", "5 - TALUDES", "7 - SOCAVACIÓN"]

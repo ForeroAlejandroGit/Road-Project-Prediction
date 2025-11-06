@@ -232,6 +232,8 @@ def train_multiple_models(df_vp: pd.DataFrame, predictors: list[str], target: st
             Performance metrics for the best model
     """
     
+    df_vp = df_vp[df_vp[target] > 0].copy()
+    
     if apply_outlier_removal:
         df_clean = remove_outliers(df_vp, target, method='ensemble', contamination=0.1)
     else:

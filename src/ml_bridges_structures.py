@@ -13,7 +13,9 @@ def train_brindges_structures_model(df_vp: pd.DataFrame, target_name: str, predi
     """
     Train linear regression model using Leave-One-Out cross-validation.
     """
-    df_filtered, df_clean = get_bridges_structures_tunnels(df_vp, target_name, exclude_codes)
+    df_clean = df_vp[df_vp[target_name] > 0]
+    
+    df_filtered, df_clean = get_bridges_structures_tunnels(df_clean, target_name, exclude_codes)
     
     X = df_clean[predictors].values
     y = df_clean[target_name].values

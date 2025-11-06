@@ -21,8 +21,8 @@ def prepare_geotecnia_data(df_vp: pd.DataFrame) -> pd.DataFrame:
     df = df.drop(columns=['3.1 - GEOLOGÍA', '3.2 - HIDROGEOLOGÍA'])
     
     # Filter projects with bridges and geology data
-    df = df[df['3 - GEOLOGÍA'] != 0]
-    df = df[df['PUENTES VEHICULARES M2'] != 0]
+    df = df[df['3 - GEOLOGÍA'] > 0]
+    df = df[df['PUENTES VEHICULARES M2'] > 0]
     
     return df
 
