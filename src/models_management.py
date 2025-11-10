@@ -112,9 +112,11 @@ class ModelsManagement:
         for target in basic_targets:
             print(f"Processing {target}...")
             
+            model = models.get(target).get('models')
+            
             # Check if target exists in models and has the specific alcance
-            if models.get(target) is not None:
-                result = models.get(target).get(alcance)
+            if model.get(alcance) is not None:
+                result = model.get(alcance)
                 
                 if result is not None:
                     model = result['model']

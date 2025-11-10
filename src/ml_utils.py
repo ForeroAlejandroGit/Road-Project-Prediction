@@ -859,6 +859,7 @@ def consolidate_results_by_alcance(results_target):
     # Lists to collect data
     data_list = []
     metrics_list = []
+    models_dict = {}
     
     # Iterate through each alcance type
     for alcance_type, result in results_target.items():
@@ -871,6 +872,13 @@ def consolidate_results_by_alcance(results_target):
         y = result['y']
         y_predicted = result['y_predicted']
         metrics = result['metrics']
+        
+        # Extract model and log_transform if available
+        if 'model' in result:
+            models_dict[alcance_type] = {
+                'model': result['model'],
+                'log_transform': result.get('log_transform', 'none')
+            }
         
         # Create dataframe for this alcance type
         # Handle X as DataFrame or array
@@ -910,6 +918,6 @@ def consolidate_results_by_alcance(results_target):
     else:
         consolidated_metrics = pd.DataFrame()
     
-    return {'X': consolidated_data[['LONGITUD KM', 'ALCANCE']], 'y': consolidated_data['y'], 
-            'y_predicted': consolidated_data['y_predicted'], 'metrics': consolidated_metrics
+    return {'X': consolidated_data[['LONGITUD KM', 'ALCANCE']], 'y': consolidated_data['y'], 'y_predicted': consolidated_data['y_predicted'], 
+            'models': models_dict, 'metrics': consolidated_metrics
     }
