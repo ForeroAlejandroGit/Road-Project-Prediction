@@ -171,16 +171,30 @@ class ModelsManagement:
         
         # Coordination model (uses train_and_calculate_metrics format - expects original + LOG columns)
         if '16 - DIRECCIÓN Y COORDINACIÓN' in models:
-            model_coord = models['16 - DIRECCIÓN Y COORDINACIÓN']['model']
-            coord_cols = ['2.2 - TRAZADO Y DISEÑO GEOMÉTRICO', '5 - TALUDES', '7 - SOCAVACIÓN',
-                         '2.2 - TRAZADO Y DISEÑO GEOMÉTRICO LOG', '5 - TALUDES LOG', '7 - SOCAVACIÓN LOG']
-            predictions['16 - DIRECCIÓN Y COORDINACIÓN'] = model_coord.predict(input_data[coord_cols])[0]
+            required_preds = ['2.2 - TRAZADO Y DISEÑO GEOMÉTRICO', '5 - TALUDES', '7 - SOCAVACIÓN']
+            # Check if all required predictions are available (not None/NaN)
+            if all(predictions.get(pred) is not None for pred in required_preds):
+                model_coord = models['16 - DIRECCIÓN Y COORDINACIÓN']['model']
+                coord_cols = ['2.2 - TRAZADO Y DISEÑO GEOMÉTRICO', '5 - TALUDES', '7 - SOCAVACIÓN',
+                             '2.2 - TRAZADO Y DISEÑO GEOMÉTRICO LOG', '5 - TALUDES LOG', '7 - SOCAVACIÓN LOG']
+                predictions['16 - DIRECCIÓN Y COORDINACIÓN'] = model_coord.predict(input_data[coord_cols])[0]
+            else:
+                predictions['16 - DIRECCIÓN Y COORDINACIÓN'] = None
+                print(f"Processing 16 - DIRECCIÓN Y COORDINACIÓN...")
+                print(f"  ✗ Skipped: Required predictors contain NaN values")
         
         # Geology model (also uses train_and_calculate_metrics format)
         if '3 - GEOLOGÍA' in models:
-            model_geo = models['3 - GEOLOGÍA']['model']
-            geo_cols = ['2.2 - TRAZADO Y DISEÑO GEOMÉTRICO', '5 - TALUDES', '7 - SOCAVACIÓN']
-            predictions['3 - GEOLOGÍA'] = model_geo.predict(input_data[geo_cols])[0]
+            required_preds = ['2.2 - TRAZADO Y DISEÑO GEOMÉTRICO', '5 - TALUDES', '7 - SOCAVACIÓN']
+            # Check if all required predictions are available (not None/NaN)
+            if all(predictions.get(pred) is not None for pred in required_preds):
+                model_geo = models['3 - GEOLOGÍA']['model']
+                geo_cols = ['2.2 - TRAZADO Y DISEÑO GEOMÉTRICO', '5 - TALUDES', '7 - SOCAVACIÓN']
+                predictions['3 - GEOLOGÍA'] = model_geo.predict(input_data[geo_cols])[0]
+            else:
+                predictions['3 - GEOLOGÍA'] = None
+                print(f"Processing 3 - GEOLOGÍA...")
+                print(f"  ✗ Skipped: Required predictors contain NaN values")
         
         # Suelos model (simple predictor, no LOG columns needed in input)
         if '4 - SUELOS' in models:

@@ -768,6 +768,7 @@ def train_models_by_alcance_and_transform(df_vp: pd.DataFrame, predictors: list[
         
         if len(df_hue) > 10:
             df_hue = remove_outliers(df_hue, target)
+            # pass
         
         if len(df_hue) < min_samples:
             print(f"\n⚠️  {hue_value}: Insufficient data ({len(df_hue)} samples) - Skipped")
