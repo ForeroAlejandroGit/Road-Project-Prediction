@@ -79,6 +79,6 @@ def train_tunnel_model(df_vp: pd.DataFrame, predictors: list[str], target: str) 
     y_real = df_clean[target].astype(float)
     
     y_pred = model.predict(X_real)
-    metrics = calculate_metrics(y_real, y_pred, target)
+    metrics = calculate_metrics(y_real, y_pred, model_name='Linear Regression')
     return {'X': X_real[['TUNELES UND', 'TUNELES KM']], 'y': y_real, 'y_predicted': y_pred, 'model': model, 'metrics': metrics, 'log_transform': 'output'}
     

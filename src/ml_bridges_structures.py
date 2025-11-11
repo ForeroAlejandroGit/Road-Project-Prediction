@@ -57,7 +57,7 @@ def train_brindges_structures_model(df_vp: pd.DataFrame, target_name: str, predi
         model.fit(X_train, y_train)
         y_pred[test_idx] = model.predict(X_test)
     
-    metrics = calculate_metrics(y, y_pred)
+    metrics = calculate_metrics(y, y_pred, model_name='Linear Regression')
     model.fit(X, y)
     log_transform_type = 'output' if use_log_transform else 'none'
     

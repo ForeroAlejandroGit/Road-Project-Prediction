@@ -49,7 +49,7 @@ def train_direction_model(df: pd.DataFrame, predictor_name: list[str], target_na
 
     cv_simple = RepeatedKFold(n_splits=min(5, len(y)//2), n_repeats=1, random_state=42) if len(y) >= 10 else LeaveOneOut()
     y_oof = cross_val_predict(gs.best_estimator_, X, y, cv=cv_simple, n_jobs=-1)
-    metrics = calculate_metrics(y, y_oof, target_name, include_rmsle=True)
+    metrics = calculate_metrics(y, y_oof, model_name='SVR', include_rmsle=True)
     X_return = X.copy()
     for col in ['LONGITUD KM', 'ALCANCE']:
         if col in df.columns and col not in X_return.columns:
