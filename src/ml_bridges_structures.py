@@ -58,9 +58,7 @@ def train_brindges_structures_model(df_vp: pd.DataFrame, target_name: str, predi
         y_pred[test_idx] = model.predict(X_test)
     
     metrics = calculate_metrics(y, y_pred)
-    print(metrics)
-    
-    # Fit final model on all data
     model.fit(X, y)
+    log_transform_type = 'output' if use_log_transform else 'none'
     
-    return {'X': X, 'y': y, 'y_predicted': y_pred,'model': model, 'metrics': metrics}
+    return {'X': X, 'y': y, 'y_predicted': y_pred,'model': model, 'metrics': metrics, 'log_transform': log_transform_type}

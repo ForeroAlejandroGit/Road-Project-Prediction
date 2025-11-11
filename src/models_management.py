@@ -6,10 +6,41 @@ from src.ml_paisajismo import train_paisajismo_model, prepare_paisajismo_data
 from src.ml_cantidades_socioeconomica import train_cantidades_model
 import src.ml_utils as ml_utils
 import pandas as pd
+import numpy as np
 
 from src.config import Config
 import src.eda as eda
 import src.present_value as present_value
+
+def create_results_dataframe(results: dict) -> pd.DataFrame:
+    rows = []
+    for target, result in results.items():
+        if 'metrics' in result and isinstance(result['metrics'], pd.DataFrame):
+            for _, row in result['metrics'].iterrows():
+                rows.append({
+                    'Target': target,
+                    'Alcance': row.get('ALCANCE', 'General'),
+                    'Model': row.get('Model', 'N/A'),
+                    'R²': row.get('R²', np.nan),
+                    'MAE': row.get('MAE', np.nan),
+                    'RMSE': row.get('RMSE', np.nan),
+                    'MAPE (%)': row.get('MAPE (%)', np.nan),
+                    'n_samples': row.get('n_samples', np.nan),
+                    'log_transform': row.get('log_transform', 'none')
+                })
+        elif 'metrics' in result and isinstance(result['metrics'], dict):
+            rows.append({
+                'Target': target,
+                'Alcance': 'General',
+                'Model': result['metrics'].get('Model', 'N/A'),
+                'R²': result['metrics'].get('R²', np.nan),
+                'MAE': result['metrics'].get('MAE', np.nan),
+                'RMSE': result['metrics'].get('RMSE', np.nan),
+                'MAPE (%)': result['metrics'].get('MAPE (%)', np.nan),
+                'n_samples': len(result.get('y', [])),
+                'log_transform': result.get('log_transform', 'none')
+            })
+    return pd.DataFrame(rows)
 
 class ModelsManagement:
     def __init__(self, fase: str):
@@ -25,8 +56,7 @@ class ModelsManagement:
         self.df_vp = preproccesing.create_dataset(self.pv.present_value_costs, fase=self.fase)
         return self.df_vp
 
-    def train_models(self) -> dict:
-        
+    def train_models(self) -> tuple[dict, pd.DataFrame]:
         if self.fase == 'II':
             return self.train_models_fase_II()
         elif self.fase == 'III':
@@ -93,7 +123,8 @@ class ModelsManagement:
         target_cant = '13 - CANTIDADES'
         results[target_cant] = train_cantidades_model(self.df_vp, predictors_cant, target_cant, log_transform='none')
         
-        return results
+        summary_df = create_results_dataframe(results)
+        return results, summary_df
 
     def predict_fase_III(self, codigo: str, longitud_km: float, puentes_vehiculares_und: int,
                          puentes_vehiculares_m2: float, puentes_peatonales_und: int,
@@ -108,10 +139,7 @@ class ModelsManagement:
                         '2.3 - SEGURIDAD VIAL', '2.4 - SISTEMAS INTELIGENTES', '5 - TALUDES', '6 - PAVIMENTO',
                         '7 - SOCAVACIÓN', '11 - PREDIAL', '12 - IMPACTO AMBIENTAL', '15 - OTROS - MANEJO DE REDES']
         
-        # Predict for basic targets using alcance-specific models
         for target in basic_targets:
-            print(f"Processing {target}...")
-            
             model = models.get(target).get('models')
             
             # Check if target exists in models and has the specific alcance
@@ -137,13 +165,10 @@ class ModelsManagement:
                         prediction = np.expm1(prediction)
                     
                     predictions[target] = prediction
-                    print(f"  ✓ Predicted: {prediction:,.2f} (log_transform: {log_transform})")
                 else:
                     predictions[target] = None
-                    print(f"  ✗ Alcance '{alcance}' not available for this target")
             else:
                 predictions[target] = None
-                print(f"  ✗ Target not found in models")
         
         # Prepare input_data for subsequent models that need multiple predictors
         input_data = pd.DataFrame({
@@ -171,10 +196,8 @@ class ModelsManagement:
             else:
                 input_data[col + ' LOG'] = [None]
         
-        # Coordination model (uses train_and_calculate_metrics format - expects original + LOG columns)
         if '16 - DIRECCIÓN Y COORDINACIÓN' in models:
             required_preds = ['2.2 - TRAZADO Y DISEÑO GEOMÉTRICO', '5 - TALUDES', '7 - SOCAVACIÓN']
-            # Check if all required predictions are available (not None/NaN)
             if all(predictions.get(pred) is not None for pred in required_preds):
                 model_coord = models['16 - DIRECCIÓN Y COORDINACIÓN']['model']
                 coord_cols = ['2.2 - TRAZADO Y DISEÑO GEOMÉTRICO', '5 - TALUDES', '7 - SOCAVACIÓN',
@@ -182,33 +205,24 @@ class ModelsManagement:
                 predictions['16 - DIRECCIÓN Y COORDINACIÓN'] = model_coord.predict(input_data[coord_cols])[0]
             else:
                 predictions['16 - DIRECCIÓN Y COORDINACIÓN'] = None
-                print(f"Processing 16 - DIRECCIÓN Y COORDINACIÓN...")
-                print(f"  ✗ Skipped: Required predictors contain NaN values")
         
-        # Geology model (also uses train_and_calculate_metrics format)
         if '3 - GEOLOGÍA' in models:
             required_preds = ['2.2 - TRAZADO Y DISEÑO GEOMÉTRICO', '5 - TALUDES', '7 - SOCAVACIÓN']
-            # Check if all required predictions are available (not None/NaN)
             if all(predictions.get(pred) is not None for pred in required_preds):
                 model_geo = models['3 - GEOLOGÍA']['model']
                 geo_cols = ['2.2 - TRAZADO Y DISEÑO GEOMÉTRICO', '5 - TALUDES', '7 - SOCAVACIÓN']
                 predictions['3 - GEOLOGÍA'] = model_geo.predict(input_data[geo_cols])[0]
             else:
                 predictions['3 - GEOLOGÍA'] = None
-                print(f"Processing 3 - GEOLOGÍA...")
-                print(f"  ✗ Skipped: Required predictors contain NaN values")
         
-        # Suelos model (simple predictor, no LOG columns needed in input)
         if '4 - SUELOS' in models:
             model_suelos = models['4 - SUELOS']['model']
             predictions['4 - SUELOS'] = model_suelos.predict(np.array([[puentes_vehiculares_m2]]))[0]
         
-        # Estructuras model (simple predictor, no LOG columns needed in input)
         if '8 - ESTRUCTURAS' in models:
             model_estructuras = models['8 - ESTRUCTURAS']['model']
             predictions['8 - ESTRUCTURAS'] = model_estructuras.predict(np.array([[puentes_vehiculares_und]]))[0]
         
-        # Tunnels model (expects 2 predictors + their LOG versions)
         if '9 - TÚNELES' in models and (tuneles_und > 0 or tuneles_km > 0):
             model_tuneles = models['9 - TÚNELES']['model']
             X_tuneles = pd.DataFrame({
@@ -221,12 +235,10 @@ class ModelsManagement:
         else:
             predictions['9 - TÚNELES'] = None
         
-        # Paisajismo model (simple predictor, no LOG columns needed in input)
         if '10 - URBANISMO Y PAISAJISMO' in models:
             model_pais = models['10 - URBANISMO Y PAISAJISMO']['model']
             predictions['10 - URBANISMO Y PAISAJISMO'] = model_pais.predict(np.array([[puentes_peatonales_und]]))[0]
         
-        # Cantidades model (multiple predictors, log_transform='none' so no LOG transform needed)
         if '13 - CANTIDADES' in models:
             model_cant = models['13 - CANTIDADES']['model']
             X_cant = np.array([[puentes_vehiculares_und, puentes_vehiculares_m2, puentes_peatonales_und]])

@@ -78,13 +78,7 @@ def train_tunnel_model(df_vp: pd.DataFrame, predictors: list[str], target: str) 
     X_real[predictor2 + '_LOG'] = np.log1p(X_real[predictor2])
     y_real = df_clean[target].astype(float)
     
-    # Predict on real data (scaling happens automatically inside pipeline)
     y_pred = model.predict(X_real)
-    
-    # Calculate comprehensive metrics using the centralized function
     metrics = calculate_metrics(y_real, y_pred, target)
-    
-    print(f"\nR² = {metrics['R²']:.4f} | MAPE = {metrics['MAPE (%)']:.2f}%")
-    
-    return {'X': X_real[['TUNELES UND', 'TUNELES KM']], 'y': y_real, 'y_predicted': y_pred, 'model': model, 'metrics': metrics}
+    return {'X': X_real[['TUNELES UND', 'TUNELES KM']], 'y': y_real, 'y_predicted': y_pred, 'model': model, 'metrics': metrics, 'log_transform': 'output'}
     

@@ -62,9 +62,6 @@ def train_cantidades_model(df_vp: pd.DataFrame, predictors: list[str], target: s
         y_pred = y_pred_loo
     
     model.fit(X, y_train)
-    
     metrics = calculate_metrics(y, y_pred, model_name='Ridge')
-    print(metrics)
-    
-    return {'X': X, 'y': y, 'y_predicted': y_pred, 'model': model, 'metrics': metrics}
+    return {'X': X, 'y': y, 'y_predicted': y_pred, 'model': model, 'metrics': metrics, 'log_transform': log_transform}
 

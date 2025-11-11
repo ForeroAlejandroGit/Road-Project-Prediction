@@ -34,20 +34,13 @@ def train_paisajismo_model(df: pd.DataFrame, features: list[str], target: str = 
     n_samples = len(X)
     
     if n_samples <= 2:
-        # For 2 or fewer samples, just fit the model and use fitted values
-        print(f"Warning: Only {n_samples} samples available. Skipping cross-validation.")
         trained_model.fit(X, y)
         y_pred = trained_model.predict(X)
     else:
-        # Cross-validation with Leave-One-Out for larger datasets
         loo = LeaveOneOut()
         y_pred = cross_val_predict(trained_model, X, y, cv=loo)
-        # Train final model on all data
         trained_model.fit(X, y)
     
-    # Calculate metrics
     metrics = calculate_metrics(y, y_pred, model_name="Linear Regression")
-    print(metrics)
-    
-    return {'X': X, 'y': y, 'y_predicted': y_pred, 'model': trained_model, 'metrics': metrics}
+    return {'X': X, 'y': y, 'y_predicted': y_pred, 'model': trained_model, 'metrics': metrics, 'log_transform': 'none'}
 

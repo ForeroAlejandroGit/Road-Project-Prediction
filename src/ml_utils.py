@@ -56,7 +56,6 @@ def remove_outliers(df: pd.DataFrame, target: str, method: str = 'ensemble',
     df_nonzero = df[df[target] != 0].copy()
     
     if len(df_nonzero) < 10:
-        print(f"  → Warning: Only {len(df_nonzero)} samples. Skipping outlier detection.")
         return df_nonzero
     
     # Prepare features: numerical columns + target
@@ -131,16 +130,6 @@ def remove_outliers(df: pd.DataFrame, target: str, method: str = 'ensemble',
     
     # Filter out outliers
     df_clean = df_nonzero[~is_outlier].copy()
-    
-    # Report
-    n_outliers = is_outlier.sum()
-    pct_removed = (n_outliers / len(df_nonzero)) * 100
-    print(f"  → Removed {n_outliers}/{len(df_nonzero)} outliers ({pct_removed:.1f}%) using {method}")
-    
-    # if method == 'ensemble' and len(outlier_flags) > 1:
-    #     for flag_name, flags in outlier_flags.items():
-    #         print(f"     • {flag_name}: {flags.sum()} outliers")
-    
     return df_clean
 
 
@@ -338,28 +327,11 @@ def train_multiple_models(df_vp: pd.DataFrame, predictors: list[str], target: st
         all_results.append(metrics)
     
     results_df = pd.DataFrame(all_results).sort_values('R²', ascending=False)
-    
-    print(f"\n{'='*80}")
-    print(f"RESULTS - {target}")
-    print(f"Predictors: {' + '.join(predictors)}")
-    print(f"Log Transform: {log_transform}")
-    print(f"{'='*80}\n")
-    print(results_df.to_string(index=False))
-    print(f"\n{'='*80}\n")
-    
-    # Select best model based on R² (primary) and MAPE (secondary)
-    # Sort by R² descending, then MAPE ascending
     results_df_sorted = results_df.sort_values(by=['R²', 'MAPE (%)'], ascending=[False, True])
     best_model_name = results_df_sorted.iloc[0]['Model']
-    
-    # Get best model, predictions, and metrics
     best_model = all_models[best_model_name]
     y_predicted = all_predictions[best_model_name]
     best_metrics = results_df_sorted.iloc[0].to_dict()
-    
-    print(f"✓ Best Model Selected: {best_model_name}")
-    print(f"  R² = {best_metrics['R²']:.3f}, MAPE = {best_metrics['MAPE (%)']:.2f}%\n")
-    
     return X, y, y_predicted, best_model, best_metrics
 
 
@@ -768,10 +740,8 @@ def train_models_by_alcance_and_transform(df_vp: pd.DataFrame, predictors: list[
         
         if len(df_hue) > 10:
             df_hue = remove_outliers(df_hue, target)
-            # pass
         
         if len(df_hue) < min_samples:
-            print(f"\n⚠️  {hue_value}: Insufficient data ({len(df_hue)} samples) - Skipped")
             results[hue_value] = None
             continue
         
@@ -779,17 +749,11 @@ def train_models_by_alcance_and_transform(df_vp: pd.DataFrame, predictors: list[
         best_score = -float('inf')
         
         for log_transform in log_transforms:
-            print(f"\n{'='*80}")
-            print(f"Training: {hue_value} | Log Transform: {log_transform}")
-            print(f"{'='*80}")
-            
             try:
                 X, y, y_predicted, model, metrics = train_multiple_models(
                     df_hue, predictors, target, log_transform=log_transform, apply_outlier_removal=False
                 )
-                
                 score = 0.35 * metrics['R²'] - 0.65 * (metrics['MAPE (%)'] / 100)
-                
                 if score > best_score:
                     best_score = score
                     best_result = {
@@ -797,15 +761,10 @@ def train_models_by_alcance_and_transform(df_vp: pd.DataFrame, predictors: list[
                         'model': model, 'metrics': metrics, 
                         'log_transform': log_transform, 'n_samples': len(y)
                     }
-                    
             except Exception as e:
-                print(f"✗ Error: {str(e)}")
+                pass
         
         results[hue_value] = best_result
-        
-        if best_result:
-            print(f"\n✓ Best for {hue_value}: {best_result['log_transform']} | "
-                  f"R²={best_result['metrics']['R²']:.3f}, MAPE={best_result['metrics']['MAPE (%)']:.2f}%\n")
     
     return results
 
